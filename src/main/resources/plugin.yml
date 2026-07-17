@@ -1,0 +1,21 @@
+name: GPBucketBypass
+version: '${version}'
+main: com.pgc.gpbucketbypass.Main
+api-version: '1.21'
+author: PGC
+description: Allows water and lava buckets to be used inside GriefPrevention claims when enabled in config.
+softdepend: [GriefPrevention]
+
+commands:
+  gpbucket:
+    description: Manage the GPBucketBypass plugin.
+    usage: /<command> reload
+    permission: gpbucket.reload
+
+permissions:
+  gpbucket.bypass:
+    description: Allows a player's bucket use to bypass GriefPrevention claim protection where enabled.
+    default: true
+  gpbucket.reload:
+    description: Allows use of /gpbucket reload.
+    default: op
