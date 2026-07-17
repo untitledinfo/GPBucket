@@ -3,11 +3,12 @@ name: Build GPBucketBypass
 on:
   push:
     branches: [main, master]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -39,3 +40,27 @@ jobs:
           name: GPBucketBypass
           path: build/libs/*.jar
           if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    # A version tag such as v1.0.0 automatically creates the release. Normal
+    # branch and pull-request builds remain artifact-only.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download built plugin
+        uses: actions/download-artifact@v4
+        with:
+          name: GPBucketBypass
+          path: release
+
+      - name: Create release and attach plugin JAR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG_NAME" release/*.jar \
+            --title "GPBucketBypass $TAG_NAME" \
+            --generate-notes
