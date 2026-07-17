@@ -4,7 +4,7 @@ Paper 1.21 / GriefPrevention plugin that blocks water and lava griefing in prote
 
 ## 50 implemented features
 
-1. Water bucket blocking; 2. lava bucket blocking; 3. fill blocking; 4. empty blocking; 5. claim-only mode; 6. wilderness-wide mode; 7. world allow-list; 8. source-water detection; 9. source-lava detection; 10. liquid-flow blocking; 11. water-flow blocking; 12. lava-flow blocking; 13. dispenser water blocking; 14. dispenser lava blocking; 15. creative-mode protection; 16. permission exemptions; 17. default-deny exemption permission; 18. SQLite database; 19. persistent exemptions; 20. force-block player rules; 21. persistent player rules; 22. rule removal; 23. per-player audit records; 24. action type audit; 25. player-name audit; 26. world audit; 27. coordinate audit; 28. audit timestamps; 29. indexed audit lookup; 30. per-player block totals; 31. player notifications; 32. staff notifications; 33. staff notification permission; 34. color-codeable messages; 35. cooldown support; 36. live config reload; 37. configuration cache; 38. debug setting; 39. database filename setting; 40. GUI main menu; 41. GUI water toggle; 42. GUI lava toggle; 43. GUI fill toggle; 44. GUI empty toggle; 45. GUI flow toggle; 46. GUI dispenser toggle; 47. GUI creative toggle; 48. GUI scope switch; 49. GUI audit toggle; 50. GUI notification toggle.
+Includes all existing protection, SQLite, audit, GUI, and console features plus a GriefPrevention API hook and persistent WorldEdit selection regions.
 
 ## Commands
 
@@ -18,8 +18,15 @@ Paper 1.21 / GriefPrevention plugin that blocks water and lava griefing in prote
 | `/gpbucket block <player>` | Force-block a player, overriding exemptions. |
 | `/gpbucket unblock <player>` | Remove the force-block rule. |
 | `/gpbucket stats <player>` | Show blocked-action total and player rule. |
+| `/gpbucket region create <name>` | Save the current WorldEdit wooden-axe selection as a protected cuboid. |
+| `/gpbucket region delete <name>` | Delete a saved protected cuboid. |
+| `/gpbucket region list` | List saved protected cuboids. |
 
 Permissions: `gpbucket.admin`, `gpbucket.gui`, `gpbucket.reload`, `gpbucket.exempt`, and `gpbucket.notify`. Only the deliberate `gpbucket.exempt` permission bypasses normal rules; it defaults to `false`.
+
+## WorldEdit regions
+
+Install WorldEdit (it is optional), select two corners with its wooden axe, then use `/gpbucket region create spawn-lake`. Regions are stored in the GPBucket SQLite database and are protected even where no GriefPrevention claim exists. Set `worldedit-regions-enabled: false` to disable their enforcement without deleting them.
 
 ## Build
 

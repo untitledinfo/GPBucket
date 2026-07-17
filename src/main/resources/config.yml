@@ -16,6 +16,10 @@
 debug: false
 database-file: data.db
 protection-scope: CLAIMS
+# Named regions created with /gpbucket region create <name> are protected in
+# addition to GriefPrevention claims. Select two points using the WorldEdit
+# wooden axe, then run the command.
+worldedit-regions-enabled: true
 
 # Console branding and operational logging. ANSI color works in most modern
 # terminals; disable it if your hosting panel shows raw escape characters.

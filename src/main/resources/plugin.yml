@@ -5,11 +5,12 @@ api-version: '1.21'
 author: PGC
 description: Claim-aware lava and water bucket protection with exemptions and SQLite auditing.
 depend: [GriefPrevention]
+softdepend: [WorldEdit]
 
 commands:
   gpbucket:
     description: Manage the GPBucketBypass plugin.
-    usage: /<command> <gui|reload|status|report|exempt|unexempt|block|unblock|stats>
+    usage: /<command> <gui|reload|status|report|region|exempt|unexempt|block|unblock|stats>
 
 permissions:
   gpbucket.exempt:
@@ -26,4 +27,7 @@ permissions:
     default: op
   gpbucket.notify:
     description: Receives staff notifications when liquid actions are blocked.
+    default: op
+  gpbucket.region:
+    description: Allows creating and removing protected regions from a WorldEdit selection.
     default: op

@@ -1,6 +1,5 @@
 package com.pgc.gpbucketbypass;
 
-import me.ryanhamshire.GriefPrevention.GriefPrevention;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -16,9 +15,9 @@ import java.util.function.Consumer;
 
 /** Enforces player, dispenser, and fluid-flow protections before block state changes occur. */
 public final class ProtectionListener implements Listener {
-    private final Main plugin; private final ConfigManager config; private final DatabaseManager database;
+    private final Main plugin; private final ConfigManager config; private final DatabaseManager database; private final GriefPreventionHook griefPrevention; private final RegionManager regions;
     private final Map<UUID, Long> lastUse = new ConcurrentHashMap<>();
-    public ProtectionListener(Main plugin, ConfigManager config, DatabaseManager database) { this.plugin = plugin; this.config = config; this.database = database; }
+    public ProtectionListener(Main plugin, ConfigManager config, DatabaseManager database, GriefPreventionHook griefPrevention, RegionManager regions) { this.plugin = plugin; this.config = config; this.database = database; this.griefPrevention = griefPrevention; this.regions = regions; }
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onFill(PlayerBucketFillEvent e) { Material source = e.getBlockClicked().getType(); Material liquid = source == Material.WATER ? Material.WATER_BUCKET : source == Material.LAVA ? Material.LAVA_BUCKET : Material.AIR; handlePlayer(e.getPlayer(), e.getBlockClicked().getLocation(), liquid, true, e::setCancelled); }
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -34,7 +33,10 @@ public final class ProtectionListener implements Listener {
         if (config.cooldownMs() > 0 && last != null && now - last < config.cooldownMs()) { cancellation.accept(true); if (config.notifyPlayer()) player.sendMessage(config.cooldownMessage()); return; }
         lastUse.put(player.getUniqueId(), now);
     }
-    private boolean isProtected(Location location) { return location.getWorld() != null && config.isWorldEnabled(location.getWorld().getName()) && (config.scope() == ConfigManager.Scope.EVERYWHERE || GriefPrevention.instance.dataStore.getClaimAt(location, true, null) != null); }
+    private boolean isProtected(Location location) {
+        if (location.getWorld() == null || !config.isWorldEnabled(location.getWorld().getName())) return false;
+        return config.scope() == ConfigManager.Scope.EVERYWHERE || griefPrevention.isClaimed(location) || (config.worldEditRegions() && regions.contains(location));
+    }
     private boolean isExempt(Player p) {
         DatabaseManager.Rule rule = database.rule(p.getUniqueId());
         if (rule == DatabaseManager.Rule.BLOCKED) return false;

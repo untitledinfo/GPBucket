@@ -11,7 +11,7 @@ import java.util.Set;
 public final class ConfigManager {
     public enum Scope { CLAIMS, EVERYWHERE }
     private final Main plugin;
-    private boolean debug, blockWater, blockLava, blockFill, blockEmpty, blockFlow, blockDispensers, blockCreative;
+    private boolean debug, blockWater, blockLava, blockFill, blockEmpty, blockFlow, blockDispensers, blockCreative, worldEditRegions;
     private boolean permissionExemptions, databaseExemptions, audit, notifyPlayer, notifyStaff, consoleBanner, consoleAnsi, consoleCommands, consoleSummary;
     private long cooldownMs;
     private Scope scope;
@@ -20,7 +20,7 @@ public final class ConfigManager {
     public ConfigManager(Main plugin) { this.plugin = plugin; }
     public void load() {
         plugin.saveDefaultConfig(); plugin.reloadConfig(); FileConfiguration c = plugin.getConfig();
-        debug = c.getBoolean("debug", false); blockWater = c.getBoolean("block-water", true); blockLava = c.getBoolean("block-lava", true);
+        debug = c.getBoolean("debug", false); worldEditRegions = c.getBoolean("worldedit-regions-enabled", true); blockWater = c.getBoolean("block-water", true); blockLava = c.getBoolean("block-lava", true);
         blockFill = c.getBoolean("block-fill", true); blockEmpty = c.getBoolean("block-empty", true); blockFlow = c.getBoolean("block-fluid-flow", true);
         blockDispensers = c.getBoolean("block-dispensers", true); blockCreative = c.getBoolean("block-creative-mode", true);
         permissionExemptions = c.getBoolean("respect-permission-exemptions", true); databaseExemptions = c.getBoolean("respect-database-exemptions", true);
@@ -46,6 +46,7 @@ public final class ConfigManager {
     public long cooldownMs() { return cooldownMs; } public Scope scope() { return scope; } public String databaseFile() { return databaseFile; }
     public String blockedMessage() { return blockedMessage; } public String cooldownMessage() { return cooldownMessage; } public String guiUpdatedMessage() { return guiUpdatedMessage; } public String staffPermission() { return staffPermission; }
     public boolean debug() { return debug; }
+    public boolean worldEditRegions() { return worldEditRegions; }
     public boolean consoleBanner() { return consoleBanner; } public boolean consoleAnsi() { return consoleAnsi; } public boolean consoleAdminCommands() { return consoleCommands; } public boolean consoleSummary() { return consoleSummary; }
     public int worldCount() { return worlds.size(); }
     public String noPermissionMessage() { return noPermissionMessage; } public String playerNotFoundMessage() { return playerNotFoundMessage; }
