@@ -31,6 +31,12 @@ public final class DatabaseManager implements AutoCloseable {
         try (PreparedStatement p = connection.prepareStatement("INSERT INTO audit(uuid, player_name, action, world, x, y, z, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) { p.setString(1, uuid.toString()); p.setString(2, name); p.setString(3, action); p.setString(4, world); p.setInt(5, x); p.setInt(6, y); p.setInt(7, z); p.setLong(8, System.currentTimeMillis()); p.executeUpdate(); } catch (SQLException ignored) { }
     }
     public long blockedCount(UUID uuid) { try (PreparedStatement p = connection.prepareStatement("SELECT COUNT(*) FROM audit WHERE uuid = ?")) { p.setString(1, uuid.toString()); ResultSet r = p.executeQuery(); return r.next() ? r.getLong(1) : 0; } catch (SQLException ignored) { return 0; } }
+    public List<String> recentAudit(UUID uuid, int limit) {
+        List<String> entries = new ArrayList<>();
+        try (PreparedStatement p = connection.prepareStatement("SELECT action, world, x, y, z, created_at FROM audit WHERE uuid = ? ORDER BY id DESC LIMIT ?")) { p.setString(1, uuid.toString()); p.setInt(2, Math.max(1, Math.min(limit, 20))); ResultSet r = p.executeQuery(); while (r.next()) entries.add(r.getString(1) + " at " + r.getString(2) + " " + r.getInt(3) + "," + r.getInt(4) + "," + r.getInt(5) + " [" + new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(new java.util.Date(r.getLong(6))) + "]"); }
+        catch (SQLException ignored) { }
+        return entries;
+    }
     public void saveRegion(ProtectedRegion region, String by) throws SQLException {
         try (PreparedStatement p = connection.prepareStatement("INSERT OR REPLACE INTO protected_regions(name, world, min_x, min_y, min_z, max_x, max_y, max_z, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
             p.setString(1, region.name()); p.setString(2, region.world()); p.setInt(3, region.minX()); p.setInt(4, region.minY()); p.setInt(5, region.minZ()); p.setInt(6, region.maxX()); p.setInt(7, region.maxY()); p.setInt(8, region.maxZ()); p.setString(9, by); p.setLong(10, System.currentTimeMillis()); p.executeUpdate();

@@ -45,6 +45,8 @@ public final class ProtectionListener implements Listener {
     }
     private void blocked(Player p, Location l, String action) {
         if (config.notifyPlayer()) p.sendMessage(config.blockedMessage());
+        if (config.actionBar()) p.sendActionBar(config.blockedMessage());
+        if (config.blockedSound()) p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.65F, 0.7F);
         if (config.audit()) database.audit(p.getUniqueId(), p.getName(), action, l.getWorld().getName(), l.getBlockX(), l.getBlockY(), l.getBlockZ());
         if (config.notifyStaff()) for (Player staff : Bukkit.getOnlinePlayers()) if (staff.hasPermission(config.staffPermission())) staff.sendMessage(ChatColor.DARK_AQUA + "[GPBucket] " + p.getName() + " blocked: " + action + " at " + l.getWorld().getName() + " " + l.getBlockX() + "," + l.getBlockY() + "," + l.getBlockZ());
     }

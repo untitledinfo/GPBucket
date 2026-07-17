@@ -10,7 +10,7 @@ softdepend: [WorldEdit]
 commands:
   gpbucket:
     description: Manage the GPBucketBypass plugin.
-    usage: /<command> <gui|reload|status|report|region|exempt|unexempt|block|unblock|stats>
+    usage: /<command> <gui|reload|status|report|inspect|audit|region|exempt|unexempt|block|unblock|stats>
 
 permissions:
   gpbucket.exempt:

@@ -51,12 +51,17 @@ log-blocked-actions: true
 notify-player: true
 notify-staff: false
 staff-notification-permission: gpbucket.notify
+# Extra player feedback for blocked liquid actions.
+blocked-actionbar: true
+blocked-sound: true
 
 # Messages can be customized with & color codes.
 messages:
   blocked: '&cLava and water buckets are disabled in this protected area.'
   cooldown: '&ePlease wait before using another liquid bucket.'
   gui-updated: '&aSetting updated.'
+  inspection-header: '&b&lGPBucket Protection Inspection'
+  no-audit-history: '&7No blocked liquid actions are recorded for this player.'
   no-permission: '&cYou do not have permission to do that.'
   player-not-found: '&cThat player must be online.'
   rule-updated: '&aRule for &f%player% &ais now &e%rule%&a.'
