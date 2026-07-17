@@ -2,6 +2,7 @@ import org.gradle.jvm.tasks.Jar
 
 plugins {
     id("java")
+    id("com.gradleup.shadow") version "8.3.6"
 }
 
 group = "com.pgc"
@@ -29,6 +30,11 @@ dependencies {
     // published to a public Maven repository. Replace this with the exact
     // GriefPrevention.jar your server uses if you update GriefPrevention.
     compileOnly(files("libs/GriefPrevention.jar"))
+
+    // Embedded and relocated into the final jar. This makes the audit and
+    // exemption database work without requiring server owners to install a
+    // JDBC driver separately.
+    implementation("org.xerial:sqlite-jdbc:3.47.1.0")
 }
 
 tasks.withType<JavaCompile> {
@@ -52,6 +58,12 @@ tasks.withType<Jar> {
     archiveClassifier.set("")
 }
 
+tasks.shadowJar {
+    archiveBaseName.set("GPBucketBypass")
+    archiveClassifier.set("")
+    relocate("org.sqlite", "com.pgc.gpbucketbypass.libs.sqlite")
+}
+
 tasks.build {
-    dependsOn(tasks.jar)
+    dependsOn(tasks.shadowJar)
 }

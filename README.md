@@ -1,68 +1,27 @@
 # GPBucketBypass
 
-Allows water and lava buckets to be used inside GriefPrevention claims,
-per-liquid and per-action, controlled entirely from `config.yml`.
+This is now a liquid-protection plugin for Paper 1.21 and GriefPrevention. It blocks lava and water bucket fills/empties for **everyone** in claims by default, including claim owners and trusted players. It never grants a GriefPrevention bypass.
 
-## How it works
+## Features
 
-GriefPrevention funnels *every* claim-permission decision through one
-internal event: `ClaimPermissionCheckEvent`. Right before GriefPrevention
-would deny an action, it fires this event and then checks
-`getDenialReason()` — if another plugin has cleared it, the action goes
-ahead as if the player had permission.
+- Blocks water and/or lava independently.
+- Blocks filling, emptying, or both.
+- `CLAIMS` scope protects every GriefPrevention claim; `EVERYWHERE` protects configured worlds including wilderness.
+- Permission exemptions (`gpbucket.exempt`) and staff-managed persistent exemptions.
+- Embedded SQLite database: `plugins/GPBucketBypass/data.db` stores exemptions and blocked-action audits.
+- World allow-list, reload command, action messages, and configurable audit logging.
 
-`BucketListener` listens for that event, and only touches it when:
+## Build and install
 
-1. `getTriggeringEvent()` is a `PlayerBucketFillEvent` or
-   `PlayerBucketEmptyEvent`,
-2. the player is in a world listed under `worlds:` in config.yml,
-3. the player has the `gpbucket.bypass` permission, and
-4. the matching config option (water/lava × fill/empty, gated by the
-   `disable-*-protection` master switches) is `true`.
+Run `gradle build`. Use `build/libs/GPBucketBypass-1.0.0.jar`; it includes the SQLite driver. Install beside GriefPrevention, start once, then edit `plugins/GPBucketBypass/config.yml`.
 
-If all of that holds, it calls `event.setDenialReason(null)`, which is
-GriefPrevention's own supported way for other plugins to override a
-single permission check. Everything else a claim protects (building,
-containers, PvP, etc.) is left completely untouched, and claims,
-admin claims, and subdivisions are all covered automatically since they
-all route through the same event.
+## Commands
 
-This approach needs no NMS and doesn't race GriefPrevention's own
-listener priority on the raw Bukkit bucket events.
+| Command | Permission |
+|---|---|
+| `/gpbucket reload` | `gpbucket.reload` |
+| `/gpbucket status` | `gpbucket.admin` |
+| `/gpbucket exempt <player>` | `gpbucket.admin` |
+| `/gpbucket unexempt <player>` | `gpbucket.admin` |
 
-## Building
-
-```
-./gradlew build
-```
-
-The compiled jar will be at `build/libs/GPBucketBypass-1.0.0.jar`.
-
-Building requires network access to Maven Central and
-`repo.papermc.io` (for the Paper API) — make sure your build machine
-can reach those.
-
-`libs/GriefPrevention.jar` (the jar you provided) is bundled in this
-project and used as a `compileOnly` dependency so the project compiles
-against the exact GriefPrevention API version you're running. It is
-never shaded or shipped inside the output jar — at runtime the plugin
-uses whatever GriefPrevention jar is actually on your server.
-
-If you later update GriefPrevention, only the `ClaimPermissionCheckEvent`,
-`ClaimPermission` enum, and `ClaimEvent` classes need to keep their
-current shape for this plugin to keep compiling and working; these are
-GriefPrevention's stable public API classes.
-
-## Installation
-
-1. Drop the built jar into your server's `plugins/` folder alongside
-   GriefPrevention.
-2. Start the server. `plugins/GPBucketBypass/config.yml` will be created.
-3. Edit the config as needed, then run `/gpbucket reload`.
-
-## Commands & permissions
-
-| Command           | Permission        | Default | Purpose                     |
-|--------------------|--------------------|---------|------------------------------|
-| `/gpbucket reload` | `gpbucket.reload`  | op      | Reloads config.yml            |
-| —                   | `gpbucket.bypass`  | true    | Player can use the bypass     |
+`gpbucket.exempt` defaults to `false`, so the protection applies to everyone, including server admins. Staff can grant a deliberate database exemption with the command.

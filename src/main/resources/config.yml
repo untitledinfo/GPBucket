@@ -1,36 +1,30 @@
 # =====================================================================
 #  GPBucketBypass configuration
 # =====================================================================
-#  Controls whether water/lava bucket use is allowed inside
-#  GriefPrevention claims, per liquid type and per action.
+#  Blocks lava and water bucket use. Defaults protect everyone in
+#  GriefPrevention claims, including trusted players, claim owners, and
+#  administrators unless they have gpbucket.exempt or a database exemption.
 #
 #  debug:
 #    When true, verbose bypass decisions are logged to console.
 #
-#  disable-water-protection / disable-lava-protection:
-#    Master switches. Must be true for the corresponding fill/empty
-#    options below to have any effect.
-#
-#  allow-water-bucket-fill / allow-lava-bucket-fill:
-#    Allow picking liquid UP with an empty bucket inside a claim.
-#
-#  allow-water-bucket-empty / allow-lava-bucket-empty:
-#    Allow placing liquid DOWN from a full bucket inside a claim.
-#
-#  worlds:
-#    Only players in these worlds are affected. Any world not listed
-#    here is left entirely to GriefPrevention's normal protection.
+#  protection-scope: CLAIMS blocks only inside any GP claim; EVERYWHERE
+#    blocks across listed worlds, including wilderness.
+#  exemptions: permission and/or database exemptions can be disabled.
 # =====================================================================
 
 debug: false
+database-file: data.db
+protection-scope: CLAIMS
 
-disable-water-protection: true
-disable-lava-protection: true
+block-water: true
+block-lava: true
+block-fill: true
+block-empty: true
 
-allow-water-bucket-fill: true
-allow-lava-bucket-fill: true
-allow-water-bucket-empty: true
-allow-lava-bucket-empty: true
+respect-permission-exemptions: true
+respect-database-exemptions: true
+log-blocked-actions: true
 
 worlds:
   - world

@@ -1,123 +1,49 @@
 package com.pgc.gpbucketbypass;
 
+import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
-
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Locale;
 import java.util.Set;
-import java.util.logging.Logger;
 
-/**
- * Loads, caches, and reloads GPBucketBypass's config.yml.
- * <p>
- * Values are read once per (re)load into plain Java fields so the hot
- * event-handling path in {@link BucketListener} never has to touch the
- * (comparatively slow) Bukkit {@link FileConfiguration} lookup chain.
- */
+/** Immutable-at-use cached configuration for the liquid protections. */
 public final class ConfigManager {
-
+    public enum Scope { CLAIMS, EVERYWHERE }
     private final Main plugin;
-    private final Logger logger;
+    private boolean debug, blockWater, blockLava, blockFill, blockEmpty, permissionExemptions, databaseExemptions, audit;
+    private Scope scope;
+    private String databaseFile;
+    private Set<String> worlds = Set.of();
 
-    private boolean debug;
-    private boolean disableWaterProtection;
-    private boolean disableLavaProtection;
-    private boolean allowWaterBucketFill;
-    private boolean allowLavaBucketFill;
-    private boolean allowWaterBucketEmpty;
-    private boolean allowLavaBucketEmpty;
-    private Set<String> enabledWorlds = Collections.emptySet();
+    public ConfigManager(Main plugin) { this.plugin = plugin; }
 
-    public ConfigManager(Main plugin) {
-        this.plugin = plugin;
-        this.logger = plugin.getLogger();
-    }
-
-    /**
-     * Loads (or reloads) config.yml from disk into this manager's cached
-     * fields. Safe to call repeatedly, e.g. from /gpbucket reload.
-     */
     public void load() {
-        // Ensures config.yml exists on disk, copying the bundled default
-        // from the jar the first time the plugin runs.
         plugin.saveDefaultConfig();
         plugin.reloadConfig();
-
-        FileConfiguration config = plugin.getConfig();
-
-        this.debug = config.getBoolean("debug", false);
-        this.disableWaterProtection = config.getBoolean("disable-water-protection", true);
-        this.disableLavaProtection = config.getBoolean("disable-lava-protection", true);
-        this.allowWaterBucketFill = config.getBoolean("allow-water-bucket-fill", true);
-        this.allowLavaBucketFill = config.getBoolean("allow-lava-bucket-fill", true);
-        this.allowWaterBucketEmpty = config.getBoolean("allow-water-bucket-empty", true);
-        this.allowLavaBucketEmpty = config.getBoolean("allow-lava-bucket-empty", true);
-
-        List<String> worldsList = config.getStringList("worlds");
-        Set<String> worlds = new HashSet<>(worldsList.size());
-        for (String world : worldsList) {
-            if (world != null && !world.isBlank()) {
-                worlds.add(world);
-            }
-        }
-        this.enabledWorlds = Collections.unmodifiableSet(worlds);
-
-        if (debug) {
-            logger.info("[Debug] Configuration (re)loaded: " +
-                    "disable-water-protection=" + disableWaterProtection + ", " +
-                    "disable-lava-protection=" + disableLavaProtection + ", " +
-                    "allow-water-bucket-fill=" + allowWaterBucketFill + ", " +
-                    "allow-lava-bucket-fill=" + allowLavaBucketFill + ", " +
-                    "allow-water-bucket-empty=" + allowWaterBucketEmpty + ", " +
-                    "allow-lava-bucket-empty=" + allowLavaBucketEmpty + ", " +
-                    "worlds=" + enabledWorlds);
-        }
+        FileConfiguration c = plugin.getConfig();
+        debug = c.getBoolean("debug", false);
+        blockWater = c.getBoolean("block-water", true);
+        blockLava = c.getBoolean("block-lava", true);
+        blockFill = c.getBoolean("block-fill", true);
+        blockEmpty = c.getBoolean("block-empty", true);
+        permissionExemptions = c.getBoolean("respect-permission-exemptions", true);
+        databaseExemptions = c.getBoolean("respect-database-exemptions", true);
+        audit = c.getBoolean("log-blocked-actions", true);
+        databaseFile = c.getString("database-file", "data.db");
+        try { scope = Scope.valueOf(c.getString("protection-scope", "CLAIMS").toUpperCase(Locale.ROOT)); }
+        catch (IllegalArgumentException ignored) { scope = Scope.CLAIMS; plugin.getLogger().warning("Invalid protection-scope; using CLAIMS."); }
+        Set<String> loaded = new HashSet<>();
+        for (String name : c.getStringList("worlds")) if (name != null && !name.isBlank()) loaded.add(name);
+        worlds = Set.copyOf(loaded);
     }
-
-    public boolean isDebug() {
-        return debug;
+    public boolean isWorldEnabled(String world) { return worlds.contains(world); }
+    public boolean shouldBlock(Material bucket, boolean filling) {
+        return (filling ? blockFill : blockEmpty) && ((bucket == Material.WATER_BUCKET && blockWater) || (bucket == Material.LAVA_BUCKET && blockLava));
     }
-
-    public boolean isWorldEnabled(String worldName) {
-        return worldName != null && enabledWorlds.contains(worldName);
-    }
-
-    /**
-     * @return true if water buckets should bypass claim protection when
-     * an empty bucket is used to pick water up (fill event).
-     */
-    public boolean isWaterFillBypassEnabled() {
-        return disableWaterProtection && allowWaterBucketFill;
-    }
-
-    /**
-     * @return true if water buckets should bypass claim protection when
-     * a full water bucket is emptied to place water (empty event).
-     */
-    public boolean isWaterEmptyBypassEnabled() {
-        return disableWaterProtection && allowWaterBucketEmpty;
-    }
-
-    /**
-     * @return true if lava buckets should bypass claim protection when
-     * an empty bucket is used to pick lava up (fill event).
-     */
-    public boolean isLavaFillBypassEnabled() {
-        return disableLavaProtection && allowLavaBucketFill;
-    }
-
-    /**
-     * @return true if lava buckets should bypass claim protection when
-     * a full lava bucket is emptied to place lava (empty event).
-     */
-    public boolean isLavaEmptyBypassEnabled() {
-        return disableLavaProtection && allowLavaBucketEmpty;
-    }
-
-    public void debugLog(String message) {
-        if (debug) {
-            logger.info("[Debug] " + message);
-        }
-    }
+    public boolean permissionExemptions() { return permissionExemptions; }
+    public boolean databaseExemptions() { return databaseExemptions; }
+    public boolean audit() { return audit; }
+    public boolean debug() { return debug; }
+    public Scope scope() { return scope; }
+    public String databaseFile() { return databaseFile; }
 }

@@ -1,104 +1,59 @@
 package com.pgc.gpbucketbypass;
 
 import org.bukkit.ChatColor;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
+import org.bukkit.command.*;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import java.util.Collections;
+import java.io.File;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Locale;
 
-/**
- * GPBucketBypass — allows water and lava buckets to be used inside
- * GriefPrevention claims when enabled in configuration.
- * <p>
- * The plugin is a pure soft-dependency of GriefPrevention: if
- * GriefPrevention is not installed, GPBucketBypass loads cleanly, logs a
- * notice, and simply does nothing (no listener is registered, so no
- * GriefPrevention classes are ever touched at runtime).
- */
+/** Main entry point and administration command for GPBucketBypass. */
 public final class Main extends JavaPlugin implements CommandExecutor, TabCompleter {
+    private ConfigManager config;
+    private DatabaseManager database;
 
-    private static final String GRIEF_PREVENTION_PLUGIN_NAME = "GriefPrevention";
-
-    private ConfigManager configManager;
-    private boolean hookedIntoGriefPrevention;
-
-    @Override
-    public void onEnable() {
-        this.configManager = new ConfigManager(this);
-        this.configManager.load();
-
-        if (getServer().getPluginManager().getPlugin(GRIEF_PREVENTION_PLUGIN_NAME) == null) {
-            hookedIntoGriefPrevention = false;
-            getLogger().warning("GriefPrevention was not found. GPBucketBypass has nothing to " +
-                    "hook into and will remain idle until GriefPrevention is installed and the " +
-                    "server is restarted.");
-        } else {
-            getServer().getPluginManager().registerEvents(new BucketListener(configManager), this);
-            hookedIntoGriefPrevention = true;
-            getLogger().info("Successfully hooked into GriefPrevention.");
-        }
-
-        var command = getCommand("gpbucket");
-        if (command != null) {
-            command.setExecutor(this);
-            command.setTabCompleter(this);
-        }
-
-        getLogger().info("GPBucketBypass v" + getPluginMeta().getVersion() + " enabled.");
+    @Override public void onEnable() {
+        config = new ConfigManager(this); config.load();
+        try { database = new DatabaseManager(new File(getDataFolder(), config.databaseFile())); }
+        catch (SQLException e) { getLogger().severe("Could not open SQLite database; disabling plugin: " + e.getMessage()); getServer().getPluginManager().disablePlugin(this); return; }
+        getServer().getPluginManager().registerEvents(new ProtectionListener(config, database), this);
+        PluginCommand command = getCommand("gpbucket");
+        if (command != null) { command.setExecutor(this); command.setTabCompleter(this); }
+        getLogger().info("GPBucketBypass protection enabled. Scope: " + config.scope());
     }
+    @Override public void onDisable() { if (database != null) database.close(); }
 
-    @Override
-    public void onDisable() {
-        getLogger().info("GPBucketBypass disabled.");
-    }
-
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!command.getName().equalsIgnoreCase("gpbucket")) {
-            return false;
-        }
-
-        if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
-            if (!sender.hasPermission("gpbucket.reload")) {
-                sender.sendMessage(ChatColor.RED + "You do not have permission to do that.");
-                return true;
-            }
-
-            configManager.load();
-
-            if (getServer().getPluginManager().getPlugin(GRIEF_PREVENTION_PLUGIN_NAME) == null) {
-                hookedIntoGriefPrevention = false;
-                sender.sendMessage(ChatColor.YELLOW + "[GPBucketBypass] Config reloaded, but " +
-                        "GriefPrevention is still not installed — the plugin remains idle.");
-            } else if (!hookedIntoGriefPrevention) {
-                // GriefPrevention was installed after startup; listener registration only
-                // happens once at enable time, so tell the operator a restart is required.
-                sender.sendMessage(ChatColor.YELLOW + "[GPBucketBypass] Config reloaded. " +
-                        "GriefPrevention is now present but was not detected at startup — " +
-                        "restart the server to fully hook into it.");
-            } else {
-                sender.sendMessage(ChatColor.GREEN + "[GPBucketBypass] Configuration reloaded.");
-            }
+    @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (args.length == 0) { usage(sender, label); return true; }
+        String sub = args[0].toLowerCase(Locale.ROOT);
+        if (sub.equals("reload")) {
+            if (!sender.hasPermission("gpbucket.reload")) return denied(sender);
+            String oldFile = config.databaseFile(); config.load();
+            if (!oldFile.equals(config.databaseFile())) sender.sendMessage(ChatColor.YELLOW + "Config reloaded. Database file changes apply after restart.");
+            else sender.sendMessage(ChatColor.GREEN + "GPBucketBypass configuration reloaded.");
             return true;
         }
-
-        sender.sendMessage(ChatColor.YELLOW + "Usage: /" + label + " reload");
-        return true;
-    }
-
-    @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 1) {
-            return Collections.singletonList("reload");
+        if (sub.equals("status")) {
+            if (!sender.hasPermission("gpbucket.admin")) return denied(sender);
+            sender.sendMessage(ChatColor.GOLD + "GPBucketBypass: " + ChatColor.YELLOW + "scope=" + config.scope() + ", database=" + config.databaseFile()); return true;
         }
-        return Collections.emptyList();
+        if ((sub.equals("exempt") || sub.equals("unexempt")) && args.length == 2) {
+            if (!sender.hasPermission("gpbucket.admin")) return denied(sender);
+            Player target = getServer().getPlayerExact(args[1]);
+            if (target == null) { sender.sendMessage(ChatColor.RED + "That player must be online."); return true; }
+            try { database.setExempt(target.getUniqueId(), sender.getName(), sub.equals("exempt")); }
+            catch (SQLException e) { sender.sendMessage(ChatColor.RED + "Database error. Check console."); getLogger().warning(e.getMessage()); return true; }
+            sender.sendMessage(ChatColor.GREEN + target.getName() + (sub.equals("exempt") ? " is now exempt from liquid protections." : " is no longer exempt.")); return true;
+        }
+        usage(sender, label); return true;
     }
-
-    public ConfigManager getConfigManager() {
-        return configManager;
+    private boolean denied(CommandSender sender) { sender.sendMessage(ChatColor.RED + "You do not have permission to do that."); return true; }
+    private void usage(CommandSender sender, String label) { sender.sendMessage(ChatColor.YELLOW + "Usage: /" + label + " <reload|status|exempt <player>|unexempt <player>>"); }
+    @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) return List.of("reload", "status", "exempt", "unexempt");
+        if (args.length == 2 && (args[0].equalsIgnoreCase("exempt") || args[0].equalsIgnoreCase("unexempt"))) return null;
+        return List.of();
     }
 }
