@@ -2,7 +2,10 @@ import org.gradle.jvm.tasks.Jar
 
 plugins {
     id("java")
-    id("com.gradleup.shadow") version "8.3.6"
+    // Shadow 8.3.6 uses an ASM remapper that fails on Java 21 invokedynamic
+    // bytecode when Gradle 9 runs the build. Shadow 9.5.1 supports Gradle 9.2+
+    // and fixes that relocation path.
+    id("com.gradleup.shadow") version "9.5.1"
 }
 
 group = "com.pgc"
