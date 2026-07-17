@@ -17,6 +17,14 @@ debug: false
 database-file: data.db
 protection-scope: CLAIMS
 
+# Console branding and operational logging. ANSI color works in most modern
+# terminals; disable it if your hosting panel shows raw escape characters.
+console:
+  startup-banner: true
+  ansi-colors: true
+  log-admin-commands: true
+  log-protection-summary: true
+
 block-water: true
 block-lava: true
 block-fill: true
@@ -43,6 +51,9 @@ messages:
   blocked: '&cLava and water buckets are disabled in this protected area.'
   cooldown: '&ePlease wait before using another liquid bucket.'
   gui-updated: '&aSetting updated.'
+  no-permission: '&cYou do not have permission to do that.'
+  player-not-found: '&cThat player must be online.'
+  rule-updated: '&aRule for &f%player% &ais now &e%rule%&a.'
 
 worlds:
   - world

@@ -12,10 +12,10 @@ public final class ConfigManager {
     public enum Scope { CLAIMS, EVERYWHERE }
     private final Main plugin;
     private boolean debug, blockWater, blockLava, blockFill, blockEmpty, blockFlow, blockDispensers, blockCreative;
-    private boolean permissionExemptions, databaseExemptions, audit, notifyPlayer, notifyStaff;
+    private boolean permissionExemptions, databaseExemptions, audit, notifyPlayer, notifyStaff, consoleBanner, consoleAnsi, consoleCommands, consoleSummary;
     private long cooldownMs;
     private Scope scope;
-    private String databaseFile, blockedMessage, cooldownMessage, guiUpdatedMessage, staffPermission;
+    private String databaseFile, blockedMessage, cooldownMessage, guiUpdatedMessage, noPermissionMessage, playerNotFoundMessage, ruleUpdatedMessage, staffPermission;
     private Set<String> worlds = Set.of();
     public ConfigManager(Main plugin) { this.plugin = plugin; }
     public void load() {
@@ -25,11 +25,15 @@ public final class ConfigManager {
         blockDispensers = c.getBoolean("block-dispensers", true); blockCreative = c.getBoolean("block-creative-mode", true);
         permissionExemptions = c.getBoolean("respect-permission-exemptions", true); databaseExemptions = c.getBoolean("respect-database-exemptions", true);
         audit = c.getBoolean("log-blocked-actions", true); notifyPlayer = c.getBoolean("notify-player", true); notifyStaff = c.getBoolean("notify-staff", false);
+        consoleBanner = c.getBoolean("console.startup-banner", true); consoleAnsi = c.getBoolean("console.ansi-colors", true); consoleCommands = c.getBoolean("console.log-admin-commands", true); consoleSummary = c.getBoolean("console.log-protection-summary", true);
         cooldownMs = Math.max(0, c.getLong("bucket-cooldown-ms", 0)); databaseFile = c.getString("database-file", "data.db");
         staffPermission = c.getString("staff-notification-permission", "gpbucket.notify");
         blockedMessage = color(c.getString("messages.blocked", "&cLava and water buckets are disabled in this protected area."));
         cooldownMessage = color(c.getString("messages.cooldown", "&ePlease wait before using another liquid bucket."));
         guiUpdatedMessage = color(c.getString("messages.gui-updated", "&aSetting updated."));
+        noPermissionMessage = color(c.getString("messages.no-permission", "&cYou do not have permission to do that."));
+        playerNotFoundMessage = color(c.getString("messages.player-not-found", "&cThat player must be online."));
+        ruleUpdatedMessage = color(c.getString("messages.rule-updated", "&aRule for &f%player% &ais now &e%rule%&a."));
         try { scope = Scope.valueOf(c.getString("protection-scope", "CLAIMS").toUpperCase(Locale.ROOT)); } catch (Exception ignored) { scope = Scope.CLAIMS; }
         Set<String> names = new HashSet<>(); for (String name : c.getStringList("worlds")) if (name != null && !name.isBlank()) names.add(name); worlds = Set.copyOf(names);
     }
@@ -42,6 +46,10 @@ public final class ConfigManager {
     public long cooldownMs() { return cooldownMs; } public Scope scope() { return scope; } public String databaseFile() { return databaseFile; }
     public String blockedMessage() { return blockedMessage; } public String cooldownMessage() { return cooldownMessage; } public String guiUpdatedMessage() { return guiUpdatedMessage; } public String staffPermission() { return staffPermission; }
     public boolean debug() { return debug; }
+    public boolean consoleBanner() { return consoleBanner; } public boolean consoleAnsi() { return consoleAnsi; } public boolean consoleAdminCommands() { return consoleCommands; } public boolean consoleSummary() { return consoleSummary; }
+    public int worldCount() { return worlds.size(); }
+    public String noPermissionMessage() { return noPermissionMessage; } public String playerNotFoundMessage() { return playerNotFoundMessage; }
+    public String ruleUpdatedMessage(String player, String rule) { return ruleUpdatedMessage.replace("%player%", player).replace("%rule%", rule); }
     public void toggle(String key) {
         FileConfiguration c = plugin.getConfig();
         if (key.equals("scope")) c.set("protection-scope", scope == Scope.CLAIMS ? "EVERYWHERE" : "CLAIMS");

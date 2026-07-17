@@ -9,7 +9,7 @@ depend: [GriefPrevention]
 commands:
   gpbucket:
     description: Manage the GPBucketBypass plugin.
-    usage: /<command> <gui|reload|status|exempt|unexempt|block|unblock|stats>
+    usage: /<command> <gui|reload|status|report|exempt|unexempt|block|unblock|stats>
 
 permissions:
   gpbucket.exempt:
