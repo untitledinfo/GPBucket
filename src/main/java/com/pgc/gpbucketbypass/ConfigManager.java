@@ -1,49 +1,52 @@
 package com.pgc.gpbucketbypass;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 
-/** Immutable-at-use cached configuration for the liquid protections. */
+/** Cached configuration plus safe runtime toggles used by the GUI. */
 public final class ConfigManager {
     public enum Scope { CLAIMS, EVERYWHERE }
     private final Main plugin;
-    private boolean debug, blockWater, blockLava, blockFill, blockEmpty, permissionExemptions, databaseExemptions, audit;
+    private boolean debug, blockWater, blockLava, blockFill, blockEmpty, blockFlow, blockDispensers, blockCreative;
+    private boolean permissionExemptions, databaseExemptions, audit, notifyPlayer, notifyStaff;
+    private long cooldownMs;
     private Scope scope;
-    private String databaseFile;
+    private String databaseFile, blockedMessage, cooldownMessage, guiUpdatedMessage, staffPermission;
     private Set<String> worlds = Set.of();
-
     public ConfigManager(Main plugin) { this.plugin = plugin; }
-
     public void load() {
-        plugin.saveDefaultConfig();
-        plugin.reloadConfig();
-        FileConfiguration c = plugin.getConfig();
-        debug = c.getBoolean("debug", false);
-        blockWater = c.getBoolean("block-water", true);
-        blockLava = c.getBoolean("block-lava", true);
-        blockFill = c.getBoolean("block-fill", true);
-        blockEmpty = c.getBoolean("block-empty", true);
-        permissionExemptions = c.getBoolean("respect-permission-exemptions", true);
-        databaseExemptions = c.getBoolean("respect-database-exemptions", true);
-        audit = c.getBoolean("log-blocked-actions", true);
-        databaseFile = c.getString("database-file", "data.db");
-        try { scope = Scope.valueOf(c.getString("protection-scope", "CLAIMS").toUpperCase(Locale.ROOT)); }
-        catch (IllegalArgumentException ignored) { scope = Scope.CLAIMS; plugin.getLogger().warning("Invalid protection-scope; using CLAIMS."); }
-        Set<String> loaded = new HashSet<>();
-        for (String name : c.getStringList("worlds")) if (name != null && !name.isBlank()) loaded.add(name);
-        worlds = Set.copyOf(loaded);
+        plugin.saveDefaultConfig(); plugin.reloadConfig(); FileConfiguration c = plugin.getConfig();
+        debug = c.getBoolean("debug", false); blockWater = c.getBoolean("block-water", true); blockLava = c.getBoolean("block-lava", true);
+        blockFill = c.getBoolean("block-fill", true); blockEmpty = c.getBoolean("block-empty", true); blockFlow = c.getBoolean("block-fluid-flow", true);
+        blockDispensers = c.getBoolean("block-dispensers", true); blockCreative = c.getBoolean("block-creative-mode", true);
+        permissionExemptions = c.getBoolean("respect-permission-exemptions", true); databaseExemptions = c.getBoolean("respect-database-exemptions", true);
+        audit = c.getBoolean("log-blocked-actions", true); notifyPlayer = c.getBoolean("notify-player", true); notifyStaff = c.getBoolean("notify-staff", false);
+        cooldownMs = Math.max(0, c.getLong("bucket-cooldown-ms", 0)); databaseFile = c.getString("database-file", "data.db");
+        staffPermission = c.getString("staff-notification-permission", "gpbucket.notify");
+        blockedMessage = color(c.getString("messages.blocked", "&cLava and water buckets are disabled in this protected area."));
+        cooldownMessage = color(c.getString("messages.cooldown", "&ePlease wait before using another liquid bucket."));
+        guiUpdatedMessage = color(c.getString("messages.gui-updated", "&aSetting updated."));
+        try { scope = Scope.valueOf(c.getString("protection-scope", "CLAIMS").toUpperCase(Locale.ROOT)); } catch (Exception ignored) { scope = Scope.CLAIMS; }
+        Set<String> names = new HashSet<>(); for (String name : c.getStringList("worlds")) if (name != null && !name.isBlank()) names.add(name); worlds = Set.copyOf(names);
     }
     public boolean isWorldEnabled(String world) { return worlds.contains(world); }
-    public boolean shouldBlock(Material bucket, boolean filling) {
-        return (filling ? blockFill : blockEmpty) && ((bucket == Material.WATER_BUCKET && blockWater) || (bucket == Material.LAVA_BUCKET && blockLava));
-    }
-    public boolean permissionExemptions() { return permissionExemptions; }
-    public boolean databaseExemptions() { return databaseExemptions; }
-    public boolean audit() { return audit; }
+    public boolean shouldBlock(Material liquidBucket, boolean filling) { return (filling ? blockFill : blockEmpty) && ((liquidBucket == Material.WATER_BUCKET && blockWater) || (liquidBucket == Material.LAVA_BUCKET && blockLava)); }
+    public boolean shouldBlockLiquid(Material fluid) { return (fluid == Material.WATER && blockWater) || (fluid == Material.LAVA && blockLava); }
+    public boolean permissionExemptions() { return permissionExemptions; } public boolean databaseExemptions() { return databaseExemptions; }
+    public boolean audit() { return audit; } public boolean blockFlow() { return blockFlow; } public boolean blockDispensers() { return blockDispensers; }
+    public boolean blockCreative() { return blockCreative; } public boolean notifyPlayer() { return notifyPlayer; } public boolean notifyStaff() { return notifyStaff; }
+    public long cooldownMs() { return cooldownMs; } public Scope scope() { return scope; } public String databaseFile() { return databaseFile; }
+    public String blockedMessage() { return blockedMessage; } public String cooldownMessage() { return cooldownMessage; } public String guiUpdatedMessage() { return guiUpdatedMessage; } public String staffPermission() { return staffPermission; }
     public boolean debug() { return debug; }
-    public Scope scope() { return scope; }
-    public String databaseFile() { return databaseFile; }
+    public void toggle(String key) {
+        FileConfiguration c = plugin.getConfig();
+        if (key.equals("scope")) c.set("protection-scope", scope == Scope.CLAIMS ? "EVERYWHERE" : "CLAIMS");
+        else { String path = switch (key) { case "water" -> "block-water"; case "lava" -> "block-lava"; case "fill" -> "block-fill"; case "empty" -> "block-empty"; case "flow" -> "block-fluid-flow"; case "dispenser" -> "block-dispensers"; case "creative" -> "block-creative-mode"; case "audit" -> "log-blocked-actions"; case "notify" -> "notify-player"; default -> null; }; if (path == null) return; c.set(path, !c.getBoolean(path, true)); }
+        plugin.saveConfig(); load();
+    }
+    private static String color(String input) { return ChatColor.translateAlternateColorCodes('&', input == null ? "" : input); }
 }

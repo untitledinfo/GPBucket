@@ -21,10 +21,28 @@ block-water: true
 block-lava: true
 block-fill: true
 block-empty: true
+# Prevent existing lava/water from flowing into protected land.  This is
+# independent from bucket blocking and is useful against liquid griefing.
+block-fluid-flow: true
+# Prevent dispensers from placing lava/water buckets in protected land.
+block-dispensers: true
+# Block bucket actions even in creative mode (recommended for staff-safe servers).
+block-creative-mode: true
+# Cooldown between a player's allowed liquid bucket actions; 0 disables it.
+bucket-cooldown-ms: 0
 
 respect-permission-exemptions: true
 respect-database-exemptions: true
 log-blocked-actions: true
+notify-player: true
+notify-staff: false
+staff-notification-permission: gpbucket.notify
+
+# Messages can be customized with & color codes.
+messages:
+  blocked: '&cLava and water buckets are disabled in this protected area.'
+  cooldown: '&ePlease wait before using another liquid bucket.'
+  gui-updated: '&aSetting updated.'
 
 worlds:
   - world

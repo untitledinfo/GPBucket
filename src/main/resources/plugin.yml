@@ -9,7 +9,7 @@ depend: [GriefPrevention]
 commands:
   gpbucket:
     description: Manage the GPBucketBypass plugin.
-    usage: /<command> <reload|status|exempt|unexempt>
+    usage: /<command> <gui|reload|status|exempt|unexempt|block|unblock|stats>
 
 permissions:
   gpbucket.exempt:
@@ -20,4 +20,10 @@ permissions:
     default: op
   gpbucket.admin:
     description: Allows status and database-backed player exemption management.
+    default: op
+  gpbucket.gui:
+    description: Allows access to the in-game GPBucketBypass administration GUI.
+    default: op
+  gpbucket.notify:
+    description: Receives staff notifications when liquid actions are blocked.
     default: op
