@@ -25,9 +25,11 @@ worldedit-regions-enabled: true
 # terminals; disable it if your hosting panel shows raw escape characters.
 console:
   startup-banner: true
+  big-logo: true
   ansi-colors: true
   log-admin-commands: true
   log-protection-summary: true
+  log-load-stages: true
 
 block-water: true
 block-lava: true

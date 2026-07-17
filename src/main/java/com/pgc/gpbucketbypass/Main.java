@@ -16,16 +16,20 @@ public final class Main extends JavaPlugin implements CommandExecutor, TabComple
         config = new ConfigManager(this); config.load();
         console = new ConsoleReporter(getLogger(), config);
         console.startup(getPluginMeta().getVersion());
+        console.stage("Opening SQLite database...");
         try { database = new DatabaseManager(new File(getDataFolder(), config.databaseFile())); }
         catch (SQLException e) { console.error("Could not open SQLite database: " + e.getMessage()); getServer().getPluginManager().disablePlugin(this); return; }
+        console.stage("Loading GriefPrevention claim API and saved WorldEdit regions...");
         regions = new RegionManager(database); griefPrevention = new GriefPreventionHook();
         try { regions.reload(); } catch (SQLException e) { console.error("Could not load protected regions: " + e.getMessage()); getServer().getPluginManager().disablePlugin(this); return; }
+        console.stage("Registering liquid protections, commands, and admin GUI...");
         gui = new AdminGui(config);
         getServer().getPluginManager().registerEvents(new ProtectionListener(this, config, database, griefPrevention, regions), this);
         getServer().getPluginManager().registerEvents(gui, this);
         PluginCommand command = getCommand("gpbucket"); if (command != null) { command.setExecutor(this); command.setTabCompleter(this); }
         console.info("Full protection suite enabled successfully.");
         console.summary();
+        console.loaded();
     }
     @Override public void onDisable() { if (database != null) database.close(); }
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {

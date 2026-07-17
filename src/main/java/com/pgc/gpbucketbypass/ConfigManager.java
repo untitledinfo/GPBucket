@@ -12,7 +12,7 @@ public final class ConfigManager {
     public enum Scope { CLAIMS, EVERYWHERE }
     private final Main plugin;
     private boolean debug, blockWater, blockLava, blockFill, blockEmpty, blockFlow, blockDispensers, blockCreative, worldEditRegions;
-    private boolean permissionExemptions, databaseExemptions, audit, notifyPlayer, notifyStaff, consoleBanner, consoleAnsi, consoleCommands, consoleSummary;
+    private boolean permissionExemptions, databaseExemptions, audit, notifyPlayer, notifyStaff, consoleBanner, consoleLogo, consoleAnsi, consoleCommands, consoleSummary, consoleStages;
     private long cooldownMs;
     private Scope scope;
     private String databaseFile, blockedMessage, cooldownMessage, guiUpdatedMessage, noPermissionMessage, playerNotFoundMessage, ruleUpdatedMessage, staffPermission;
@@ -25,7 +25,7 @@ public final class ConfigManager {
         blockDispensers = c.getBoolean("block-dispensers", true); blockCreative = c.getBoolean("block-creative-mode", true);
         permissionExemptions = c.getBoolean("respect-permission-exemptions", true); databaseExemptions = c.getBoolean("respect-database-exemptions", true);
         audit = c.getBoolean("log-blocked-actions", true); notifyPlayer = c.getBoolean("notify-player", true); notifyStaff = c.getBoolean("notify-staff", false);
-        consoleBanner = c.getBoolean("console.startup-banner", true); consoleAnsi = c.getBoolean("console.ansi-colors", true); consoleCommands = c.getBoolean("console.log-admin-commands", true); consoleSummary = c.getBoolean("console.log-protection-summary", true);
+        consoleBanner = c.getBoolean("console.startup-banner", true); consoleLogo = c.getBoolean("console.big-logo", true); consoleAnsi = c.getBoolean("console.ansi-colors", true); consoleCommands = c.getBoolean("console.log-admin-commands", true); consoleSummary = c.getBoolean("console.log-protection-summary", true); consoleStages = c.getBoolean("console.log-load-stages", true);
         cooldownMs = Math.max(0, c.getLong("bucket-cooldown-ms", 0)); databaseFile = c.getString("database-file", "data.db");
         staffPermission = c.getString("staff-notification-permission", "gpbucket.notify");
         blockedMessage = color(c.getString("messages.blocked", "&cLava and water buckets are disabled in this protected area."));
@@ -47,7 +47,7 @@ public final class ConfigManager {
     public String blockedMessage() { return blockedMessage; } public String cooldownMessage() { return cooldownMessage; } public String guiUpdatedMessage() { return guiUpdatedMessage; } public String staffPermission() { return staffPermission; }
     public boolean debug() { return debug; }
     public boolean worldEditRegions() { return worldEditRegions; }
-    public boolean consoleBanner() { return consoleBanner; } public boolean consoleAnsi() { return consoleAnsi; } public boolean consoleAdminCommands() { return consoleCommands; } public boolean consoleSummary() { return consoleSummary; }
+    public boolean consoleBanner() { return consoleBanner; } public boolean consoleBigLogo() { return consoleLogo; } public boolean consoleAnsi() { return consoleAnsi; } public boolean consoleAdminCommands() { return consoleCommands; } public boolean consoleSummary() { return consoleSummary; } public boolean consoleLoadStages() { return consoleStages; }
     public int worldCount() { return worlds.size(); }
     public String noPermissionMessage() { return noPermissionMessage; } public String playerNotFoundMessage() { return playerNotFoundMessage; }
     public String ruleUpdatedMessage(String player, String rule) { return ruleUpdatedMessage.replace("%player%", player).replace("%rule%", rule); }
