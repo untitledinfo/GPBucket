@@ -37,7 +37,9 @@ dependencies {
 
     // WorldEdit is only used when a staff member saves a selected region.
     // It remains a server-provided soft dependency at runtime.
-    compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.4.3")
+    // 7.4.x targets Java 25. The final Java-21-compatible 7.3.x release
+    // keeps the same selection API used by WorldEditHook.
+    compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.3.19")
 
     // Embedded and relocated into the final jar. This makes the audit and
     // exemption database work without requiring server owners to install a
