@@ -2,9 +2,7 @@ name: Build GPBucketBypass
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [main, master]
   pull_request:
   workflow_dispatch:
 
@@ -26,11 +24,14 @@ jobs:
           java-version: "21"
           cache: gradle
 
-      - name: Make Gradle Executable
-        run: chmod +x gradlew
-
       - name: Build Plugin
-        run: ./gradlew build --no-daemon
+        run: |
+          if [ -f ./gradlew ]; then
+            chmod +x ./gradlew
+            ./gradlew build --no-daemon
+          else
+            gradle build --no-daemon
+          fi
 
       - name: Upload Plugin JAR
         uses: actions/upload-artifact@v4
