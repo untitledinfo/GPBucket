@@ -5,12 +5,12 @@ api-version: '1.21'
 author: PGC
 description: Claim-aware lava and water bucket protection with exemptions and SQLite auditing.
 depend: [GriefPrevention]
-softdepend: [WorldEdit]
+softdepend: [WorldEdit, PlaceholderAPI]
 
 commands:
   gpbucket:
     description: Manage the GPBucketBypass plugin.
-    usage: /<command> <gui|reload|status|report|inspect|audit|region|exempt|unexempt|block|unblock|stats>
+    usage: /<command> <gui|reload|status|report|inspect|audit|region|top|history|export|exempt|unexempt|block|unblock|stats>
 
 permissions:
   gpbucket.exempt:

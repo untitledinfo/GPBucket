@@ -48,5 +48,52 @@ public final class DatabaseManager implements AutoCloseable {
         try (PreparedStatement p = connection.prepareStatement("SELECT name, world, min_x, min_y, min_z, max_x, max_y, max_z FROM protected_regions ORDER BY name"); ResultSet r = p.executeQuery()) { while (r.next()) result.add(new ProtectedRegion(r.getString(1), r.getString(2), r.getInt(3), r.getInt(4), r.getInt(5), r.getInt(6), r.getInt(7), r.getInt(8))); }
         return result;
     }
+    // --- HUGE UPDATE: feature 13, leaderboard of most-blocked players ---
+    public List<String> topBlocked(int limit) {
+        List<String> result = new ArrayList<>();
+        try (PreparedStatement p = connection.prepareStatement("SELECT player_name, COUNT(*) c FROM audit GROUP BY uuid ORDER BY c DESC LIMIT ?")) {
+            p.setInt(1, Math.max(1, Math.min(limit, 20)));
+            ResultSet r = p.executeQuery();
+            while (r.next()) result.add(r.getString(1) + " - " + r.getInt(2));
+        } catch (SQLException ignored) { }
+        return result;
+    }
+    // --- feature 14, global paginated audit history ---
+    public List<String> allAudit(int page, int pageSize) {
+        List<String> entries = new ArrayList<>();
+        int offset = Math.max(0, (page - 1) * pageSize);
+        try (PreparedStatement p = connection.prepareStatement("SELECT player_name, action, world, x, y, z, created_at FROM audit ORDER BY id DESC LIMIT ? OFFSET ?")) {
+            p.setInt(1, pageSize); p.setInt(2, offset);
+            ResultSet r = p.executeQuery();
+            while (r.next()) entries.add(r.getString(1) + " " + r.getString(2) + " at " + r.getString(3) + " " + r.getInt(4) + "," + r.getInt(5) + "," + r.getInt(6) + " [" + new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(new java.util.Date(r.getLong(7))) + "]");
+        } catch (SQLException ignored) { }
+        return entries;
+    }
+    public int auditCount() {
+        try (Statement s = connection.createStatement(); ResultSet r = s.executeQuery("SELECT COUNT(*) FROM audit")) { return r.next() ? r.getInt(1) : 0; } catch (SQLException ignored) { return 0; }
+    }
+    // --- feature 24, global blocked-action rate for /gpbucket status ---
+    public long blockedCountSince(long sinceMillis) {
+        try (PreparedStatement p = connection.prepareStatement("SELECT COUNT(*) FROM audit WHERE created_at >= ?")) { p.setLong(1, sinceMillis); ResultSet r = p.executeQuery(); return r.next() ? r.getLong(1) : 0; } catch (SQLException ignored) { return 0; }
+    }
+    // --- feature 12, audit retention purge ---
+    public int purgeOlderThan(int days) {
+        if (days <= 0) return 0;
+        long cutoff = System.currentTimeMillis() - days * 86_400_000L;
+        try (PreparedStatement p = connection.prepareStatement("DELETE FROM audit WHERE created_at < ?")) { p.setLong(1, cutoff); return p.executeUpdate(); } catch (SQLException ignored) { return 0; }
+    }
+    // --- feature 15, region rename ---
+    public boolean renameRegion(String oldName, String newName) throws SQLException {
+        try (PreparedStatement p = connection.prepareStatement("UPDATE protected_regions SET name = ? WHERE name = ?")) { p.setString(1, newName); p.setString(2, oldName); return p.executeUpdate() > 0; }
+    }
+    // --- feature 23, CSV export of the full audit log ---
+    public void exportAudit(File target) throws SQLException, java.io.IOException {
+        try (PreparedStatement p = connection.prepareStatement("SELECT player_name, action, world, x, y, z, created_at FROM audit ORDER BY id");
+             ResultSet r = p.executeQuery();
+             java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.FileWriter(target))) {
+            writer.println("player,action,world,x,y,z,timestamp");
+            while (r.next()) writer.println(r.getString(1) + "," + r.getString(2) + "," + r.getString(3) + "," + r.getInt(4) + "," + r.getInt(5) + "," + r.getInt(6) + "," + r.getLong(7));
+        }
+    }
     @Override public void close() { if (connection != null) try { connection.close(); } catch (SQLException ignored) { } }
 }

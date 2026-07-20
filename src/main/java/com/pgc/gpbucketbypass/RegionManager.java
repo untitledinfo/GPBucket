@@ -15,4 +15,5 @@ public final class RegionManager {
     public ProtectedRegion find(String name) { return regions.stream().filter(region -> region.name().equalsIgnoreCase(name)).findFirst().orElse(null); }
     public void save(ProtectedRegion region, String by) throws SQLException { database.saveRegion(region, by); reload(); }
     public boolean delete(String name) throws SQLException { boolean deleted = database.deleteRegion(name); reload(); return deleted; }
+    public boolean rename(String oldName, String newName) throws SQLException { boolean renamed = database.renameRegion(oldName, newName); reload(); return renamed; }
 }

@@ -13,6 +13,10 @@
 #  exemptions: permission and/or database exemptions can be disabled.
 # =====================================================================
 
+# Bumped automatically by the plugin when defaults change; do not edit
+# unless told to. Used to trigger a one-time config backup on upgrade.
+config-version: 2
+
 debug: false
 database-file: data.db
 protection-scope: CLAIMS
@@ -65,8 +69,79 @@ messages:
   no-permission: '&cYou do not have permission to do that.'
   player-not-found: '&cThat player must be online.'
   rule-updated: '&aRule for &f%player% &ais now &e%rule%&a.'
+  combat-tag: '&cYou cannot use liquid buckets while in combat.'
+  auto-blocked: '&cYou have been temporarily blocked for repeated violations.'
 
 worlds:
   - world
   - world_nether
   - world_the_end
+
+# =====================================================================
+#  HUGE UPDATE — 25 new features
+# =====================================================================
+
+# 1) Stop fire spreading onto/into protected land (torch drops, lava
+#    pools, etc. igniting neighbouring blocks inside a claim/region).
+block-fire-spread: true
+# 2) Stop players lighting flint & steel fires on protected land.
+block-flint-steel: true
+# 3) Stop cauldrons being filled/emptied with buckets on protected land.
+block-cauldron: true
+# 4) Treat powder snow buckets the same as water/lava buckets.
+block-powder-snow: true
+
+# 5) Combat-tag lockout: players who took/dealt damage in the last N
+#    seconds cannot use a liquid bucket at all (stops "bucket clutch"
+#    escapes and lava-dropping on an opponent's claim). 0 disables it.
+combat-tag-seconds: 0
+
+# 6) Per-world scope overrides. Anything listed here replaces the global
+#    protection-scope for that world only, e.g. force the nether to be
+#    protected EVERYWHERE while overworld only protects CLAIMS.
+worlds-scope-override: {}
+#  worlds-scope-override:
+#    world_nether: EVERYWHERE
+
+# 7) Minimum time between repeated "blocked" chat messages/action bars
+#    to the same player, so spam-clicking a claim border doesn't flood
+#    their chat. 0 disables the cooldown.
+message-cooldown-ms: 1500
+
+# 8) Discord webhook alerts whenever a liquid action is blocked.
+webhook:
+  enabled: false
+  url: ''
+
+# 9) PlaceholderAPI support (soft-depend). Exposes %gpbucket_blocked_count%,
+#    %gpbucket_rule%, and %gpbucket_protected%. No config needed — it is
+#    auto-registered if PlaceholderAPI is installed.
+
+# 10) Auto-block: temporarily force-block a player after too many
+#     blocked attempts in a short window (likely a griefer probing claims).
+auto-block:
+  enabled: true
+  threshold: 6
+  window-seconds: 30
+  duration-minutes: 10
+
+# 11) Checks GitHub for newer releases on startup and notifies staff
+#     with gpbucket.notify on join if one is available.
+update-checker:
+  enabled: true
+  repo: PGC-mc/GPBucketBypass
+
+# 12) Audit log retention: automatically purge blocked-action rows
+#     older than this many days. 0 keeps everything forever.
+audit-retention-days: 90
+
+# 17) Cooldown between a single player's /gpbucket region create calls.
+region-create-cooldown-ms: 5000
+
+# 18) Show a one-time reminder to players the first time they stand on
+#     protected land after joining.
+join-tutorial-message: true
+
+# 21) Distinct notification sound for exempt (allowed) liquid use, kept
+#     separate from blocked-sound above.
+exempt-sound: false

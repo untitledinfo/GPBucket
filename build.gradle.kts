@@ -22,6 +22,8 @@ repositories {
     // PaperMC API
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://maven.enginehub.org/repo/")
+    // PlaceholderAPI — soft dependency, compileOnly only.
+    maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")
 }
 
 dependencies {
@@ -34,6 +36,11 @@ dependencies {
     // published to a public Maven repository. Replace this with the exact
     // GriefPrevention.jar your server uses if you update GriefPrevention.
     compileOnly(files("libs/GriefPrevention.jar"))
+
+    // PlaceholderAPI — feature 9. Soft dependency, only used if the server
+    // has it installed; GPBucketPlaceholders is only ever constructed
+    // after checking isPluginEnabled("PlaceholderAPI").
+    compileOnly("me.clip:placeholderapi:2.11.6")
 
     // WorldEdit is only used when a staff member saves a selected region.
     // It remains a server-provided soft dependency at runtime.
