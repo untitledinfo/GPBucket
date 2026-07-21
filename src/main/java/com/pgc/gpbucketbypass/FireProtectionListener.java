@@ -18,7 +18,7 @@ public final class FireProtectionListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onIgnite(BlockIgniteEvent event) {
         boolean spread = event.getCause() == BlockIgniteEvent.IgniteCause.SPREAD || event.getCause() == BlockIgniteEvent.IgniteCause.LAVA;
-        boolean manual = event.getCause() == BlockIgniteEvent.IgniteCause.FLINT_AND_STEEL || event.getCause() == BlockIgniteEvent.IgniteCause.DISPENSE_FLINT_AND_STEEL;
+        boolean manual = event.getCause() == BlockIgniteEvent.IgniteCause.FLINT_AND_STEEL || event.getCause() == BlockIgniteEvent.IgniteCause.DISPENSE;
         if (!spread && !manual) return;
         if (spread && !config.blockFireSpread()) return;
         if (manual && !config.blockFlintSteel()) return;
