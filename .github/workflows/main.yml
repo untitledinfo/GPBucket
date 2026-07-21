@@ -44,15 +44,16 @@ jobs:
   release:
     name: Publish GitHub Release
     needs: build
-    # A version tag such as v1.0.0 automatically creates the release. Normal
-    # branch and pull-request builds remain artifact-only.
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Version tags (v1.0.0) publish a named release. Regular pushes to
+    # main/master publish a rolling "latest-build" pre-release so the jar
+    # is always downloadable without having to cut a version tag first.
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     steps:
       # gh release uses the repository's local Git metadata to resolve the
       # release target, so this job needs a checkout as well as the artifact.
-      - name: Checkout tagged source
+      - name: Checkout source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -63,11 +64,35 @@ jobs:
           name: GPBucketBypass
           path: release
 
+      - name: Determine release tag
+        id: tag
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "title=GPBucketBypass ${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest-build" >> "$GITHUB_OUTPUT"
+            echo "title=GPBucketBypass latest build ($(echo ${GITHUB_SHA} | cut -c1-7))" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create release and attach plugin JAR
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG_NAME: ${{ github.ref_name }}
         run: |
+          TAG_NAME="${{ steps.tag.outputs.tag }}"
+          # The rolling "latest-build" tag is reused every push, so delete
+          # any previous release/tag under that name before recreating it.
+          if [ "$TAG_NAME" = "latest-build" ]; then
+            gh release delete "$TAG_NAME" --yes --cleanup-tag || true
+          fi
+          PRERELEASE_FLAG=""
+          if [ "${{ steps.tag.outputs.prerelease }}" = "true" ]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
           gh release create "$TAG_NAME" release/*.jar \
-            --title "GPBucketBypass $TAG_NAME" \
+            --title "${{ steps.tag.outputs.title }}" \
+            --target "${{ github.sha }}" \
+            $PRERELEASE_FLAG \
             --generate-notes
