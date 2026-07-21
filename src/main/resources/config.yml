@@ -129,7 +129,7 @@ auto-block:
 #     with gpbucket.notify on join if one is available.
 update-checker:
   enabled: true
-  repo: PGC-mc/GPBucketBypass
+  repo: untitledinfo/GPBucket
 
 # 12) Audit log retention: automatically purge blocked-action rows
 #     older than this many days. 0 keeps everything forever.

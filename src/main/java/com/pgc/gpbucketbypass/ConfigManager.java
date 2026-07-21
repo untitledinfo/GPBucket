@@ -69,7 +69,7 @@ public final class ConfigManager {
         autoBlockWindowSeconds = Math.max(1, c.getInt("auto-block.window-seconds", 30));
         autoBlockDurationMinutes = Math.max(1, c.getInt("auto-block.duration-minutes", 10));
         updateCheckerEnabled = c.getBoolean("update-checker.enabled", true);
-        updateCheckerRepo = c.getString("update-checker.repo", "PGC-mc/GPBucketBypass");
+        updateCheckerRepo = c.getString("update-checker.repo", "untitledinfo/GPBucket");
         Map<String, Scope> overrides = new HashMap<>();
         var overrideSection = c.getConfigurationSection("worlds-scope-override");
         if (overrideSection != null) for (String world : overrideSection.getKeys(false)) {
