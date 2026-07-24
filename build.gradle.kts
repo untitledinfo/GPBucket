@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "com.pgc"
-version = "1.0.0"
+version = "2.0.0"
 
 java {
     toolchain {

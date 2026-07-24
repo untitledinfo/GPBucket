@@ -15,7 +15,7 @@
 
 # Bumped automatically by the plugin when defaults change; do not edit
 # unless told to. Used to trigger a one-time config backup on upgrade.
-config-version: 2
+config-version: 3
 
 debug: false
 database-file: data.db
@@ -145,3 +145,105 @@ join-tutorial-message: true
 # 21) Distinct notification sound for exempt (allowed) liquid use, kept
 #     separate from blocked-sound above.
 exempt-sound: false
+
+# =====================================================================
+#  ADVANCED UPDATE — 25 more new features (76-100)
+# =====================================================================
+
+# 76) Overlapping protected regions resolve using /gpbucket region priority
+#     <name> <n> — the highest-priority region's flags win. No config key;
+#     priority is stored per-region in the database.
+
+# 77) Per-region liquid flag overrides via
+#     /gpbucket region flag <name> <water|lava|powder_snow> <allow|deny|default>.
+#     No config key; stored per-region in the database.
+
+# 78) Timed player rules: /gpbucket exempt|block <player> [minutes]. Omit
+#     the duration for a permanent rule, same as before.
+
+# 79) /gpbucket whois <player> — unified dashboard (rule, blocked count,
+#     risk score, auto-block state, last 3 audit entries).
+
+# 80) /gpbucket panic — instant global lockdown toggle. Runtime-only,
+#     always resets to off on restart, never written to this file.
+
+# 81) /gpbucket simulate — per-admin dry-run mode: your own liquid
+#     actions still succeed, but you see exactly what would be blocked.
+
+# 82) Protection schedule: when enabled, protection is only active
+#     between start-hour and end-hour (server-local time, 24h, wraps
+#     past midnight if end < start).
+schedule:
+  enabled: false
+  start-hour: 0
+  end-hour: 24
+
+# 83) Notify the claim owner (if online) when someone is blocked
+#     attempting to grief their claim.
+claim-owner-notify: true
+
+# 84) Broadcast to the whole server when total blocked actions cross
+#     one of these milestones.
+milestones:
+  - 100
+  - 500
+  - 1000
+  - 5000
+  - 10000
+
+# 85) Public developer API (GPBucketAPI) + BucketBlockedEvent for other
+#     plugins to hook into. No config needed.
+
+# 86) Locale/message-pack override. Set to anything other than "en" and
+#     drop a messages_<locale>.yml (with a "messages:" section, same
+#     keys as above) into the plugin's data folder to override text.
+locale: en
+
+# 87) /gpbucket audit search <keyword> — search the global audit log by
+#     player name, action, or world.
+
+# 88) /gpbucket forgive <player> — clears a player's active auto-block
+#     and resets their offense window.
+
+# 89) /gpbucket region export [file] / import <file> — YAML snapshot of
+#     every region, including flags and priority.
+
+# 90) /gpbucket region show <name> — outlines a region with particles,
+#     visible only to you, for 8 seconds.
+
+# 91) /gpbucket bypasscode generate / redeem <code> — one-time-use
+#     staff bypass codes, stored in the database.
+
+# 92) Discord webhook alerts (feature 8) now send a rich embed instead
+#     of plain text. Decimal color code, e.g. 15158332 = red.
+webhook:
+  embed-color: '15158332'
+
+# 93) /gpbucket cooldown <player> — clears a player's active
+#     bucket-use cooldown (see bucket-cooldown-ms above).
+
+# 94) Background sweep clears expired timed rules (feature 78)
+#     automatically every 5 minutes. No config needed.
+
+# 95) Severity-weighted grief risk score (lava > powder snow > water),
+#     surfaced in /gpbucket whois. No config needed.
+
+# 96) /gpbucket version — verbose diagnostics: uptime, database size,
+#     region/world counts, panic/schedule state, dependency status.
+
+# 97) /gpbucket config get|set <key> [value] — live single-key editor
+#     for any key in this file, without a full reload.
+
+# 98) Worlds listed here skip the first-join protected-land tutorial
+#     message (feature 18), even if join-tutorial-message is true.
+join-tutorial-exclude-worlds: []
+
+# 99) Local-only hourly health/usage summary logged to console.
+#     Nothing ever leaves the server; this is not external telemetry.
+metrics:
+  enabled: true
+
+# 100) Startup self-diagnostics: on enable, the console reports whether
+#      GriefPrevention/WorldEdit are present and whether the data folder
+#      is writable, so misconfiguration is caught immediately. Always on.
+

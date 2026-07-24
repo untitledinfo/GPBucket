@@ -27,6 +27,8 @@ public final class GPBucketPlaceholders extends PlaceholderExpansion {
             case "blocked_count" -> String.valueOf(database.blockedCount(player.getUniqueId()));
             case "rule" -> database.rule(player.getUniqueId()).name();
             case "protected" -> ProtectionQuery.isProtected(config, griefPrevention, regions, player.getLocation()) ? "yes" : "no";
+            case "risk_score" -> String.valueOf(database.riskScore(player.getUniqueId()));
+            case "panic" -> config.panicMode() ? "yes" : "no";
             default -> null;
         };
     }

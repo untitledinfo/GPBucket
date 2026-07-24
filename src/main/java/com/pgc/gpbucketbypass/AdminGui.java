@@ -46,7 +46,7 @@ public final class AdminGui implements Listener {
         Inventory inv = Bukkit.createInventory(null, 27, TITLE_2);
         for (int slot = 0; slot < inv.getSize(); slot++) inv.setItem(slot, named(Material.BLACK_STAINED_GLASS_PANE, ChatColor.DARK_GRAY + " ", List.of()));
         inv.setItem(4, named(Material.CAMPFIRE, ChatColor.AQUA + "GPBucket Control Panel " + ChatColor.GRAY + "(page 2)", List.of(ChatColor.GRAY + "New protections from the", ChatColor.GRAY + "25-feature HUGE UPDATE")));
-        for (int slot : new int[] {0, 1, 2, 3, 5, 6, 7, 9, 18, 22, 23, 24, 25}) inv.setItem(slot, named(Material.CYAN_STAINED_GLASS_PANE, ChatColor.DARK_AQUA + "GPBucket", List.of()));
+        for (int slot : new int[] {0, 1, 2, 3, 5, 6, 7, 9, 18, 22, 24, 25}) inv.setItem(slot, named(Material.CYAN_STAINED_GLASS_PANE, ChatColor.DARK_AQUA + "GPBucket", List.of()));
         put(inv, 10, Material.FLINT_AND_STEEL, "flintsteel", "Flint & steel", config.blockFlintSteel());
         put(inv, 11, Material.CAMPFIRE, "fire", "Fire spread", config.blockFireSpread());
         put(inv, 12, Material.CAULDRON, "cauldron", "Cauldrons", config.blockCauldron());
@@ -54,6 +54,7 @@ public final class AdminGui implements Listener {
         put(inv, 14, Material.SHIELD, "autoblock", "Auto-block", config.autoBlockEnabled());
         put(inv, 15, Material.OBSERVER, "webhook", "Discord webhook", config.webhookEnabled());
         put(inv, 16, Material.NOTE_BLOCK, "exemptsound", "Exempt sound", config.exemptSound());
+        put(inv, 23, Material.TNT, "panic", "PANIC MODE", config.panicMode());
         inv.setItem(19, named(Material.PAPER, ChatColor.AQUA + "Scope overrides", List.of(ChatColor.GRAY + "Configure per-world overrides", ChatColor.GRAY + "in config.yml, then /gpbucket reload")));
         inv.setItem(20, named(Material.CLOCK, ChatColor.AQUA + "Combat tag: " + config.combatTagMs() / 1000 + "s", List.of(ChatColor.GRAY + "Edit combat-tag-seconds in", ChatColor.GRAY + "config.yml, then /gpbucket reload")));
         inv.setItem(21, named(Material.HOPPER, ChatColor.AQUA + "Audit retention: " + config.auditRetentionDays() + "d", List.of(ChatColor.GRAY + "Edit audit-retention-days in", ChatColor.GRAY + "config.yml, then /gpbucket reload")));
@@ -73,7 +74,7 @@ public final class AdminGui implements Listener {
         if (slot == 8 || slot == 17) { player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.7F, 1.0F); if (page1) openPage2(player); else open(player); return; }
         String key = page1
                 ? switch (slot) { case 10 -> "water"; case 11 -> "lava"; case 12 -> "fill"; case 13 -> "empty"; case 14 -> "flow"; case 15 -> "dispenser"; case 16 -> "creative"; case 19 -> "scope"; case 20 -> "audit"; case 21 -> "notify"; case 26 -> "close"; default -> ""; }
-                : switch (slot) { case 10 -> "flintsteel"; case 11 -> "fire"; case 12 -> "cauldron"; case 13 -> "powdersnow"; case 14 -> "autoblock"; case 15 -> "webhook"; case 16 -> "exemptsound"; case 26 -> "close"; default -> ""; };
+                : switch (slot) { case 10 -> "flintsteel"; case 11 -> "fire"; case 12 -> "cauldron"; case 13 -> "powdersnow"; case 14 -> "autoblock"; case 15 -> "webhook"; case 16 -> "exemptsound"; case 23 -> "panic"; case 26 -> "close"; default -> ""; };
         if (key.equals("close")) { player.closeInventory(); return; } if (key.isEmpty()) return;
         config.toggle(key); player.sendMessage(config.guiUpdatedMessage()); player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.7F, 1.2F);
         if (page1) open(player); else openPage2(player);

@@ -32,4 +32,10 @@ public final class AutoBlockManager {
         if (System.currentTimeMillis() > until) { tempBlockedUntil.remove(uuid); return false; }
         return true;
     }
+    /** Feature 88: clears a player's active temp-block and resets their offense window. Returns true if anything was cleared. */
+    public boolean forgive(UUID uuid) {
+        boolean hadBlock = tempBlockedUntil.remove(uuid) != null;
+        boolean hadWindow = windows.remove(uuid) != null;
+        return hadBlock || hadWindow;
+    }
 }

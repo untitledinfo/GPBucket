@@ -26,8 +26,16 @@ public final class ConfigManager {
     private Scope scope;
     private String databaseFile, blockedMessage, cooldownMessage, guiUpdatedMessage, inspectionHeader, noAuditHistory, noPermissionMessage, playerNotFoundMessage, ruleUpdatedMessage, staffPermission;
     private String combatTagMessage, autoBlockedMessage;
-    private static final int CURRENT_CONFIG_VERSION = 2;
+    private static final int CURRENT_CONFIG_VERSION = 3;
     private Set<String> worlds = Set.of();
+    // --- ADVANCED UPDATE fields (25 new features) ---
+    private volatile boolean panicMode = false; // feature 80, runtime-only, never persisted
+    private boolean scheduleEnabled, claimOwnerNotify, metricsEnabled;
+    private int scheduleStartHour, scheduleEndHour;
+    private java.util.List<Long> milestones = java.util.List.of();
+    private String locale;
+    private Set<String> joinTutorialExcludeWorlds = Set.of();
+    private String webhookEmbedColor;
     public ConfigManager(Main plugin) { this.plugin = plugin; }
     public void load() {
         plugin.saveDefaultConfig(); plugin.reloadConfig(); FileConfiguration c = plugin.getConfig();
@@ -48,6 +56,16 @@ public final class ConfigManager {
         ruleUpdatedMessage = color(c.getString("messages.rule-updated", "&aRule for &f%player% &ais now &e%rule%&a."));
         combatTagMessage = color(c.getString("messages.combat-tag", "&cYou cannot use liquid buckets while in combat."));
         autoBlockedMessage = color(c.getString("messages.auto-blocked", "&cYou have been temporarily blocked for repeated violations."));
+        // Feature 86: an optional messages_<locale>.yml in the plugin's data folder overrides any
+        // of the messages.* keys above. English (the config.yml defaults) requires no extra file.
+        String localeName = c.getString("locale", "en");
+        if (localeName != null && !localeName.equalsIgnoreCase("en")) {
+            java.io.File localeFile = new java.io.File(plugin.getDataFolder(), "messages_" + localeName + ".yml");
+            if (localeFile.exists()) {
+                org.bukkit.configuration.file.YamlConfiguration overrides = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(localeFile);
+                for (String key : overrides.getKeys(true)) if (overrides.isString(key)) c.set("messages." + key.replaceFirst("^messages\\.", ""), overrides.getString(key));
+            }
+        }
         try { scope = Scope.valueOf(c.getString("protection-scope", "CLAIMS").toUpperCase(Locale.ROOT)); } catch (Exception ignored) { scope = Scope.CLAIMS; }
         Set<String> names = new HashSet<>(); for (String name : c.getStringList("worlds")) if (name != null && !name.isBlank()) names.add(name); worlds = Set.copyOf(names);
 
@@ -76,6 +94,21 @@ public final class ConfigManager {
             try { overrides.put(world, Scope.valueOf(String.valueOf(overrideSection.get(world)).toUpperCase(Locale.ROOT))); } catch (Exception ignored) { }
         }
         worldScopeOverrides = Map.copyOf(overrides);
+
+        // --- ADVANCED UPDATE loading ---
+        scheduleEnabled = c.getBoolean("schedule.enabled", false);
+        scheduleStartHour = ((c.getInt("schedule.start-hour", 0) % 24) + 24) % 24;
+        scheduleEndHour = ((c.getInt("schedule.end-hour", 24) % 24) + 24) % 24;
+        claimOwnerNotify = c.getBoolean("claim-owner-notify", true);
+        metricsEnabled = c.getBoolean("metrics.enabled", true);
+        locale = c.getString("locale", "en");
+        java.util.List<Long> parsedMilestones = new java.util.ArrayList<>();
+        for (Object entry : c.getList("milestones", java.util.List.of(100L, 500L, 1000L, 5000L, 10000L))) {
+            try { parsedMilestones.add(Long.parseLong(String.valueOf(entry))); } catch (NumberFormatException ignored) { }
+        }
+        milestones = java.util.List.copyOf(parsedMilestones);
+        Set<String> excluded = new HashSet<>(); for (String w : c.getStringList("join-tutorial-exclude-worlds")) if (w != null && !w.isBlank()) excluded.add(w); joinTutorialExcludeWorlds = Set.copyOf(excluded);
+        webhookEmbedColor = c.getString("webhook.embed-color", "15158332");
 
         // Feature 22: back up and stamp the config the first time it is loaded at an older version.
         int configVersion = c.getInt("config-version", 1);
@@ -134,15 +167,46 @@ public final class ConfigManager {
     public String autoBlockedMessage() { return autoBlockedMessage; }
     /** Effective scope for a world: a per-world override if set, otherwise the global scope. */
     public Scope effectiveScope(String world) { return worldScopeOverrides.getOrDefault(world, scope); }
+    // --- ADVANCED UPDATE getters ---
+    /** Feature 80: instant global lockdown. Runtime-only toggle, deliberately not saved to disk so it always resets on restart. */
+    public boolean panicMode() { return panicMode; }
+    public void setPanicMode(boolean value) { panicMode = value; }
+    /** Feature 82: true if protection is currently within its configured active window (always true when the schedule is disabled). */
+    public boolean withinSchedule() {
+        if (!scheduleEnabled) return true;
+        int hour = java.time.LocalTime.now().getHour();
+        if (scheduleStartHour == scheduleEndHour) return true; // 0-width window == always on
+        if (scheduleStartHour < scheduleEndHour) return hour >= scheduleStartHour && hour < scheduleEndHour;
+        return hour >= scheduleStartHour || hour < scheduleEndHour; // wraps past midnight
+    }
+    public boolean scheduleEnabled() { return scheduleEnabled; }
+    public int scheduleStartHour() { return scheduleStartHour; }
+    public int scheduleEndHour() { return scheduleEndHour; }
+    public boolean claimOwnerNotify() { return claimOwnerNotify; }
+    public boolean metricsEnabled() { return metricsEnabled; }
+    public String locale() { return locale; }
+    public java.util.List<Long> milestones() { return milestones; }
+    public boolean joinTutorialExcluded(String world) { return joinTutorialExcludeWorlds.contains(world); }
+    public String webhookEmbedColor() { return webhookEmbedColor; }
     public String noPermissionMessage() { return noPermissionMessage; } public String playerNotFoundMessage() { return playerNotFoundMessage; }
     public String inspectionHeader() { return inspectionHeader; } public String noAuditHistory() { return noAuditHistory; }
     public String ruleUpdatedMessage(String player, String rule) { return ruleUpdatedMessage.replace("%player%", player).replace("%rule%", rule); }
     public void toggle(String key) {
+        if (key.equals("panic")) { panicMode = !panicMode; return; } // feature 80: runtime-only, skips the config file entirely
         FileConfiguration c = plugin.getConfig();
         if (key.equals("scope")) c.set("protection-scope", scope == Scope.CLAIMS ? "EVERYWHERE" : "CLAIMS");
         else { String path = switch (key) { case "water" -> "block-water"; case "lava" -> "block-lava"; case "fill" -> "block-fill"; case "empty" -> "block-empty"; case "flow" -> "block-fluid-flow"; case "dispenser" -> "block-dispensers"; case "creative" -> "block-creative-mode"; case "audit" -> "log-blocked-actions"; case "notify" -> "notify-player";
             case "fire" -> "block-fire-spread"; case "flintsteel" -> "block-flint-steel"; case "cauldron" -> "block-cauldron"; case "powdersnow" -> "block-powder-snow"; case "webhook" -> "webhook.enabled"; case "autoblock" -> "auto-block.enabled"; case "exemptsound" -> "exempt-sound";
             default -> null; }; if (path == null) return; c.set(path, !c.getBoolean(path, true)); }
+        plugin.saveConfig(); load();
+    }
+    /** Feature 97: raw read of any config.yml path, for /gpbucket config get. */
+    public String getRaw(String path) { Object value = plugin.getConfig().get(path); return value == null ? null : String.valueOf(value); }
+    /** Feature 97: raw write of any config.yml path (booleans/numbers/strings auto-detected), for /gpbucket config set. */
+    public void setRaw(String path, String value) {
+        FileConfiguration c = plugin.getConfig();
+        if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) c.set(path, Boolean.parseBoolean(value));
+        else { try { c.set(path, Long.parseLong(value)); } catch (NumberFormatException e1) { try { c.set(path, Double.parseDouble(value)); } catch (NumberFormatException e2) { c.set(path, value); } } }
         plugin.saveConfig(); load();
     }
     private static String color(String input) { return ChatColor.translateAlternateColorCodes('&', input == null ? "" : input); }

@@ -26,7 +26,7 @@ public final class JoinListener implements Listener {
         if (updateChecker.latestVersion() != null && player.hasPermission("gpbucket.notify")) {
             player.sendMessage(ChatColor.GOLD + "[GPBucket] A newer version is available: " + updateChecker.latestVersion());
         }
-        if (!config.joinTutorialMessage() || shown.contains(player.getUniqueId())) return;
+        if (!config.joinTutorialMessage() || shown.contains(player.getUniqueId()) || config.joinTutorialExcluded(player.getWorld().getName())) return;
         if (ProtectionQuery.isProtected(config, griefPrevention, regions, player.getLocation())) {
             player.sendMessage(ChatColor.AQUA + "[GPBucket] Heads up: liquid buckets are restricted here to prevent griefing.");
             shown.add(player.getUniqueId());
