@@ -2,9 +2,9 @@
 
 Paper 1.21 / GriefPrevention plugin that blocks water and lava griefing in protected land. The safe default blocks everyone, including claim owners, trusted players, and administrators.
 
-## 100 implemented features
+## 120 implemented features
 
-Includes all existing protection, SQLite, audit, GUI, and console features plus a GriefPrevention API hook, persistent WorldEdit selection regions, the 25-feature HUGE UPDATE, and the 25-feature ADVANCED UPDATE below.
+Includes all existing protection, SQLite, audit, GUI, and console features plus a GriefPrevention API hook, persistent WorldEdit selection regions, the 25-feature HUGE UPDATE, the 25-feature ADVANCED UPDATE, and the 20-feature NEXT UPDATE below.
 
 ## HUGE UPDATE — 25 new features
 
@@ -62,6 +62,29 @@ Includes all existing protection, SQLite, audit, GUI, and console features plus 
 99. **Local metrics summary** — hourly health/usage summary logged to console; nothing leaves the server (`metrics.enabled`).
 100. **Startup self-diagnostics** — warns on enable if GriefPrevention/WorldEdit are missing, the data folder isn't writable, or the webhook is misconfigured.
 
+## NEXT UPDATE — 20 more new features
+
+101. **Rule reasons** — `/gpbucket exempt|block <player> [minutes] [reason...]` now stores a free-text reason, shown in `whois`.
+102. **`/gpbucket note <player> <text>`** — staff notes, shown in whois.
+103. **`/gpbucket warn <player> <reason>`** — escalating warnings; a player is auto-blocked at `warn-threshold`.
+104. **Region tags** — `/gpbucket region tag <name> <tags>` / `taglist <tag>`, for grouping regions.
+105. **`/gpbucket top risk [n]`** — leaderboard sorted by risk score instead of raw blocked count.
+106. **`/gpbucket backup`** — snapshots the SQLite database to a timestamped file.
+107. **`/gpbucket region merge <a> <b> <newname>`** — bounding-box union of two regions, replacing the originals.
+108. **New-player grace period** — auto-block escalation is suspended for `grace-period-minutes` after joining.
+109. **Throttled staff alerts** — rapid repeats collapse into a "(+N more since last alert)" summary (`staff-alert-cooldown-ms`).
+110. **`/gpbucket testflag <player> <water|lava|powder_snow>`** — dry-run protection check, no config needed.
+111. **Daily digest** — a 24h summary of blocked activity, to console and Discord.
+112. **`/gpbucket ignore`** — personal opt-out from live blocked-action broadcasts.
+113. **Claim-owner notify cooldown** — avoids repeat-spamming an owner for the same offender (`claim-owner-notify-cooldown-ms`).
+114. **Max regions per player** — caps how many WorldEdit regions one player may own (`max-regions-per-player`).
+115. **`/gpbucket region list [page]`** — paginated at 15 per page.
+116. **`/gpbucket audit clear`** — confirmed wipe of the entire audit log.
+117. **Proactive protected-area warning** — an action-bar warning the moment a player holding a bucket crosses into protected land.
+118. **`/gpbucket rules`** — in-game command reference, tailored to the sender's permissions.
+119. **Config validation on load** — nonsensical values now log a clear console warning instead of misbehaving silently.
+120. **`/gpbucket audit mine`** — any player can check their own blocked-action history, no admin permission required.
+
 ## Commands
 
 | Command | Purpose |
@@ -98,8 +121,18 @@ Includes all existing protection, SQLite, audit, GUI, and console features plus 
 | `/gpbucket audit search <keyword>` | Search the global audit log. |
 | `/gpbucket config get\|set <key> [value]` | Live single-key config editor. |
 | `/gpbucket version` | Verbose diagnostics. |
+| `/gpbucket note <player> <text>` | Add a staff note (shown in whois). |
+| `/gpbucket warn <player> <reason>` | Issue a warning; auto-blocks at the threshold. |
+| `/gpbucket backup` | Snapshot the SQLite database. |
+| `/gpbucket region merge <a> <b> <newname>` | Union two regions into a new one. |
+| `/gpbucket region tag <name> <tags>` / `taglist <tag>` | Group regions by tag. |
+| `/gpbucket top risk [n]` | Risk-score leaderboard. |
+| `/gpbucket testflag <player> <water\|lava\|powder_snow>` | Dry-run protection check. |
+| `/gpbucket ignore` | Personal opt-out from live blocked-action broadcasts. |
+| `/gpbucket audit clear` / `mine` | Wipe the audit log / check your own history. |
+| `/gpbucket rules` | In-game command reference. |
 
-Permissions: `gpbucket.admin`, `gpbucket.gui`, `gpbucket.reload`, `gpbucket.exempt`, `gpbucket.region`, and `gpbucket.notify`. Only the deliberate `gpbucket.exempt` permission bypasses normal rules; it defaults to `false`. All ADVANCED UPDATE admin commands (`whois`, `panic`, `simulate`, `forgive`, `cooldown`, `bypasscode`) reuse `gpbucket.admin`; `/gpbucket config` reuses `gpbucket.reload`.
+Permissions: `gpbucket.admin`, `gpbucket.gui`, `gpbucket.reload`, `gpbucket.exempt`, `gpbucket.region`, and `gpbucket.notify`. Only the deliberate `gpbucket.exempt` permission bypasses normal rules; it defaults to `false`. All ADVANCED UPDATE and NEXT UPDATE admin commands reuse `gpbucket.admin`; `/gpbucket config` reuses `gpbucket.reload`. `/gpbucket audit mine` and `/gpbucket inspect` (self-checks) need no special permission beyond what's already listed.
 
 ## WorldEdit regions
 
@@ -115,4 +148,4 @@ If PlaceholderAPI is installed, GPBucket registers automatically — no config n
 
 ## Build
 
-Run `gradle build`. The bundled Shadow build includes the SQLite driver in `build/libs/GPBucketBypass-2.0.0.jar`. Install it beside GriefPrevention. WorldEdit and PlaceholderAPI are optional soft dependencies — install them for their respective features.
+Run `gradle build`. The bundled Shadow build includes the SQLite driver in `build/libs/GPBucketBypass-3.0.0.jar`. Install it beside GriefPrevention. WorldEdit and PlaceholderAPI are optional soft dependencies — install them for their respective features.

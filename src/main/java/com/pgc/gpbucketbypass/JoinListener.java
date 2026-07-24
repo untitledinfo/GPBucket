@@ -16,13 +16,15 @@ public final class JoinListener implements Listener {
     private final GriefPreventionHook griefPrevention;
     private final RegionManager regions;
     private final UpdateChecker updateChecker;
+    private final AutoBlockManager autoBlockManager;
     private final Set<UUID> shown = Collections.newSetFromMap(new ConcurrentHashMap<>());
-    public JoinListener(ConfigManager config, GriefPreventionHook griefPrevention, RegionManager regions, UpdateChecker updateChecker) {
-        this.config = config; this.griefPrevention = griefPrevention; this.regions = regions; this.updateChecker = updateChecker;
+    public JoinListener(ConfigManager config, GriefPreventionHook griefPrevention, RegionManager regions, UpdateChecker updateChecker, AutoBlockManager autoBlockManager) {
+        this.config = config; this.griefPrevention = griefPrevention; this.regions = regions; this.updateChecker = updateChecker; this.autoBlockManager = autoBlockManager;
     }
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        autoBlockManager.markJoined(player.getUniqueId()); // feature 108: starts this session's grace period
         if (updateChecker.latestVersion() != null && player.hasPermission("gpbucket.notify")) {
             player.sendMessage(ChatColor.GOLD + "[GPBucket] A newer version is available: " + updateChecker.latestVersion());
         }

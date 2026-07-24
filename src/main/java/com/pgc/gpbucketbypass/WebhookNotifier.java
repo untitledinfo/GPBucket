@@ -27,6 +27,20 @@ public final class WebhookNotifier {
                 + "{\"name\":\"Action\",\"value\":\"" + escape(action) + "\",\"inline\":true},"
                 + "{\"name\":\"Location\",\"value\":\"" + escape(world + " " + x + ", " + y + ", " + z) + "\",\"inline\":false}"
                 + "]}]}";
+        send(body);
+    }
+    /** Feature 111: daily summary embed, sent once every 24h alongside the console digest. */
+    public void notifyDigest(long blockedInLastDay) {
+        if (config.webhookUrl() == null || config.webhookUrl().isBlank()) return;
+        String body = "{\"embeds\":[{"
+                + "\"title\":\"GPBucket — daily digest\","
+                + "\"color\":" + safeColor(config.webhookEmbedColor()) + ","
+                + "\"timestamp\":\"" + java.time.Instant.now() + "\","
+                + "\"description\":\"" + blockedInLastDay + " liquid-griefing attempt(s) blocked in the last 24 hours.\""
+                + "}]}";
+        send(body);
+    }
+    private void send(String body) {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(config.webhookUrl()))
                 .timeout(Duration.ofSeconds(5))

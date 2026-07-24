@@ -9,11 +9,20 @@ public final class AutoBlockManager {
     private static final class Window { long start; int count; Window(long start) { this.start = start; this.count = 0; } }
     private final Map<UUID, Window> windows = new ConcurrentHashMap<>();
     private final Map<UUID, Long> tempBlockedUntil = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> sessionJoinedAt = new ConcurrentHashMap<>();
     private final ConfigManager config;
     public AutoBlockManager(ConfigManager config) { this.config = config; }
+    /** Feature 108: called on join; auto-block escalation is suspended for config.gracePeriodMinutes() after this. */
+    public void markJoined(UUID uuid) { sessionJoinedAt.put(uuid, System.currentTimeMillis()); }
+    /** Feature 108: true while the player is still within their post-join grace window (grace disabled entirely if 0). */
+    public boolean inGracePeriod(UUID uuid) {
+        if (config.gracePeriodMinutes() <= 0) return false;
+        Long joinedAt = sessionJoinedAt.get(uuid);
+        return joinedAt != null && System.currentTimeMillis() - joinedAt < config.gracePeriodMinutes() * 60_000L;
+    }
     /** Records a blocked attempt; returns true the moment the player crosses the threshold. */
     public synchronized boolean recordAndCheck(UUID uuid) {
-        if (!config.autoBlockEnabled()) return false;
+        if (!config.autoBlockEnabled() || inGracePeriod(uuid)) return false;
         long now = System.currentTimeMillis();
         long windowMs = config.autoBlockWindowSeconds() * 1000L;
         Window window = windows.computeIfAbsent(uuid, id -> new Window(now));

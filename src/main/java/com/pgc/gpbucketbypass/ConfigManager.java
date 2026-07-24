@@ -26,7 +26,7 @@ public final class ConfigManager {
     private Scope scope;
     private String databaseFile, blockedMessage, cooldownMessage, guiUpdatedMessage, inspectionHeader, noAuditHistory, noPermissionMessage, playerNotFoundMessage, ruleUpdatedMessage, staffPermission;
     private String combatTagMessage, autoBlockedMessage;
-    private static final int CURRENT_CONFIG_VERSION = 3;
+    private static final int CURRENT_CONFIG_VERSION = 4;
     private Set<String> worlds = Set.of();
     // --- ADVANCED UPDATE fields (25 new features) ---
     private volatile boolean panicMode = false; // feature 80, runtime-only, never persisted
@@ -36,6 +36,11 @@ public final class ConfigManager {
     private String locale;
     private Set<String> joinTutorialExcludeWorlds = Set.of();
     private String webhookEmbedColor;
+    // --- NEXT UPDATE fields (101-120) ---
+    private int warnThreshold, gracePeriodMinutes, maxRegionsPerPlayer;
+    private long staffAlertCooldownMs, claimOwnerNotifyCooldownMs;
+    private boolean proactiveWarningEnabled;
+    private String proactiveWarningMessage;
     public ConfigManager(Main plugin) { this.plugin = plugin; }
     public void load() {
         plugin.saveDefaultConfig(); plugin.reloadConfig(); FileConfiguration c = plugin.getConfig();
@@ -110,6 +115,18 @@ public final class ConfigManager {
         Set<String> excluded = new HashSet<>(); for (String w : c.getStringList("join-tutorial-exclude-worlds")) if (w != null && !w.isBlank()) excluded.add(w); joinTutorialExcludeWorlds = Set.copyOf(excluded);
         webhookEmbedColor = c.getString("webhook.embed-color", "15158332");
 
+        // --- NEXT UPDATE loading (101-120) ---
+        warnThreshold = Math.max(1, c.getInt("warn-threshold", 3));
+        gracePeriodMinutes = Math.max(0, c.getInt("grace-period-minutes", 0));
+        maxRegionsPerPlayer = Math.max(0, c.getInt("max-regions-per-player", 0));
+        staffAlertCooldownMs = Math.max(0, c.getLong("staff-alert-cooldown-ms", 0));
+        claimOwnerNotifyCooldownMs = Math.max(0, c.getLong("claim-owner-notify-cooldown-ms", 60_000));
+        proactiveWarningEnabled = c.getBoolean("proactive-warning.enabled", false);
+        proactiveWarningMessage = color(c.getString("proactive-warning.message", "&e⚠ Liquid buckets are restricted in this area."));
+
+        // Feature 119: sanity-check values that would otherwise fail silently or behave surprisingly at runtime.
+        validate();
+
         // Feature 22: back up and stamp the config the first time it is loaded at an older version.
         int configVersion = c.getInt("config-version", 1);
         if (configVersion < CURRENT_CONFIG_VERSION) {
@@ -117,6 +134,14 @@ public final class ConfigManager {
             c.set("config-version", CURRENT_CONFIG_VERSION);
             plugin.saveConfig();
         }
+    }
+    /** Feature 119: logs a clear warning for config values that are present but nonsensical, instead of misbehaving quietly. */
+    private void validate() {
+        if (scheduleEnabled && scheduleStartHour == scheduleEndHour) plugin.getLogger().warning("[GPBucket] schedule.start-hour equals schedule.end-hour; the schedule will always be active.");
+        if (cooldownMs < 0) plugin.getLogger().warning("[GPBucket] bucket-cooldown-ms is negative; treating it as 0.");
+        if (autoBlockEnabled && autoBlockThreshold <= 0) plugin.getLogger().warning("[GPBucket] auto-block is enabled but threshold is 0 or less; it will trigger on the very first offense.");
+        if (webhookEnabled && (webhookUrl == null || webhookUrl.isBlank())) plugin.getLogger().warning("[GPBucket] webhook.enabled is true but webhook.url is empty.");
+        if (worlds.isEmpty()) plugin.getLogger().warning("[GPBucket] No worlds are listed under 'worlds'; protection will not apply anywhere.");
     }
     private void backupConfig() {
         try {
@@ -188,6 +213,13 @@ public final class ConfigManager {
     public java.util.List<Long> milestones() { return milestones; }
     public boolean joinTutorialExcluded(String world) { return joinTutorialExcludeWorlds.contains(world); }
     public String webhookEmbedColor() { return webhookEmbedColor; }
+    public int warnThreshold() { return warnThreshold; }
+    public int gracePeriodMinutes() { return gracePeriodMinutes; }
+    public int maxRegionsPerPlayer() { return maxRegionsPerPlayer; }
+    public long staffAlertCooldownMs() { return staffAlertCooldownMs; }
+    public long claimOwnerNotifyCooldownMs() { return claimOwnerNotifyCooldownMs; }
+    public boolean proactiveWarningEnabled() { return proactiveWarningEnabled; }
+    public String proactiveWarningMessage() { return proactiveWarningMessage; }
     public String noPermissionMessage() { return noPermissionMessage; } public String playerNotFoundMessage() { return playerNotFoundMessage; }
     public String inspectionHeader() { return inspectionHeader; } public String noAuditHistory() { return noAuditHistory; }
     public String ruleUpdatedMessage(String player, String rule) { return ruleUpdatedMessage.replace("%player%", player).replace("%rule%", rule); }

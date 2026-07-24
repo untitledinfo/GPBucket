@@ -247,3 +247,77 @@ metrics:
 #      GriefPrevention/WorldEdit are present and whether the data folder
 #      is writable, so misconfiguration is caught immediately. Always on.
 
+# =====================================================================
+#  NEXT UPDATE — 20 more new features (101-120)
+# =====================================================================
+
+# 101) /gpbucket exempt|block <player> [minutes] [reason...] — an
+#      optional free-text reason is now stored and shown in whois.
+
+# 102) /gpbucket note <player> <text> — staff notes, shown in whois.
+
+# 103) /gpbucket warn <player> <reason> — escalating warnings. A player
+#      is automatically blocked once they reach this many warnings.
+warn-threshold: 3
+
+# 104) Region tags for grouping: /gpbucket region tag <name> <tags>,
+#      /gpbucket region taglist <tag>. No config key.
+
+# 105) /gpbucket top risk [n] — leaderboard sorted by risk score
+#      instead of raw blocked-action count.
+
+# 106) /gpbucket backup — copies the SQLite database to a timestamped
+#      file in the plugin data folder. No config key.
+
+# 107) /gpbucket region merge <a> <b> <newname> — bounding-box union of
+#      two regions, replacing the originals. No config key.
+
+# 108) New players are exempt from auto-block escalation (feature 10)
+#      for this many minutes after joining this session. 0 = disabled.
+grace-period-minutes: 0
+
+# 109) Rapid-fire staff broadcasts (feature 6) are throttled to at most
+#      one message per this many milliseconds, collapsing the rest into
+#      a "(+N more since last alert)" summary. 0 = never throttle.
+staff-alert-cooldown-ms: 0
+
+# 110) /gpbucket testflag <player> <water|lava|powder_snow> — dry-run
+#      check of whether an action would be blocked, no config needed.
+
+# 111) Daily digest of the last 24h of blocked activity, logged to
+#      console and sent to Discord if webhook.enabled is true.
+
+# 112) /gpbucket ignore — personal opt-out from live blocked-action
+#      broadcasts, without touching notify-staff for other staff.
+
+# 113) Minimum time between repeat claim-owner-grief notifications
+#      (feature 83) for the same (owner, offender) pair.
+claim-owner-notify-cooldown-ms: 60000
+
+# 114) Maximum WorldEdit regions a single player may create. 0 = no
+#      limit.
+max-regions-per-player: 0
+
+# 115) /gpbucket region list [page] — paginated at 15 per page.
+#      No config key.
+
+# 116) /gpbucket audit clear — confirmed wipe of the entire audit log.
+#      No config key.
+
+# 117) Proactive action-bar warning the moment a player holding any
+#      bucket crosses into protected land, before they even try to
+#      use it.
+proactive-warning:
+  enabled: false
+  message: '&e⚠ Liquid buckets are restricted in this area.'
+
+# 118) /gpbucket rules — in-game command reference, tailored to the
+#      sender's permissions. No config key.
+
+# 119) Config validation on load: nonsensical values (negative
+#      cooldowns, an empty worlds list, a zero-width auto-block
+#      threshold, etc.) now log a clear console warning instead of
+#      misbehaving silently. Always on.
+
+# 120) /gpbucket audit mine — any player can check their own blocked-
+#      action history, no admin permission required. No config key.

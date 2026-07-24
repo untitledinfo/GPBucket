@@ -17,15 +17,21 @@ public final class ProtectionListener implements Listener {
     private final Main plugin; private final ConfigManager config; private final DatabaseManager database; private final GriefPreventionHook griefPrevention; private final RegionManager regions;
     private final CombatTracker combatTracker; private final AutoBlockManager autoBlockManager; private final WebhookNotifier webhookNotifier; private final ConsoleReporter console; private final DebugLogger debug;
     private final SimulateManager simulate;
+    private final IgnoreManager ignoring;
     private final Map<UUID, Long> lastUse = new ConcurrentHashMap<>();
     /** Feature 93: /gpbucket cooldown <player> clears an in-progress bucket-use cooldown. Returns true if one was cleared. */
     public boolean clearCooldown(UUID uuid) { return lastUse.remove(uuid) != null; }
     private final Map<UUID, Long> lastMessage = new ConcurrentHashMap<>();
     private final java.util.Set<Long> announcedMilestones = ConcurrentHashMap.newKeySet();
+    // --- Feature 109: collapses rapid-fire staff broadcasts into a throttled "+N more" summary ---
+    private volatile long lastStaffBroadcastAt = 0;
+    private final java.util.concurrent.atomic.AtomicInteger suppressedStaffAlerts = new java.util.concurrent.atomic.AtomicInteger();
+    // --- Feature 113: per (owner, offender) cooldown so a claim owner isn't spammed for repeat attempts ---
+    private final Map<String, Long> lastOwnerNotifyAt = new ConcurrentHashMap<>();
     public ProtectionListener(Main plugin, ConfigManager config, DatabaseManager database, GriefPreventionHook griefPrevention, RegionManager regions,
-                               CombatTracker combatTracker, AutoBlockManager autoBlockManager, WebhookNotifier webhookNotifier, ConsoleReporter console, DebugLogger debug, SimulateManager simulate) {
+                               CombatTracker combatTracker, AutoBlockManager autoBlockManager, WebhookNotifier webhookNotifier, ConsoleReporter console, DebugLogger debug, SimulateManager simulate, IgnoreManager ignoring) {
         this.plugin = plugin; this.config = config; this.database = database; this.griefPrevention = griefPrevention; this.regions = regions;
-        this.combatTracker = combatTracker; this.autoBlockManager = autoBlockManager; this.webhookNotifier = webhookNotifier; this.console = console; this.debug = debug; this.simulate = simulate;
+        this.combatTracker = combatTracker; this.autoBlockManager = autoBlockManager; this.webhookNotifier = webhookNotifier; this.console = console; this.debug = debug; this.simulate = simulate; this.ignoring = ignoring;
     }
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onFill(PlayerBucketFillEvent e) {
@@ -84,13 +90,18 @@ public final class ProtectionListener implements Listener {
             // Feature 84: broadcast once per configured milestone of total blocked actions server-wide.
             if (config.milestones().contains(total) && announcedMilestones.add(total)) Bukkit.broadcastMessage(ChatColor.GOLD + "[GPBucket] Milestone reached: " + ChatColor.YELLOW + total + ChatColor.GOLD + " liquid-griefing attempts blocked server-wide!");
         }
-        if (config.notifyStaff()) for (Player staff : Bukkit.getOnlinePlayers()) if (staff.hasPermission(config.staffPermission())) staff.sendMessage(ChatColor.DARK_AQUA + "[GPBucket] " + p.getName() + " blocked: " + action + " at " + l.getWorld().getName() + " " + l.getBlockX() + "," + l.getBlockY() + "," + l.getBlockZ());
-        // Feature 83: let the claim owner (if online and not the offender) know someone tried to grief their claim.
+        if (config.notifyStaff()) notifyStaffThrottled(ChatColor.DARK_AQUA + "[GPBucket] " + p.getName() + " blocked: " + action + " at " + l.getWorld().getName() + " " + l.getBlockX() + "," + l.getBlockY() + "," + l.getBlockZ());
+        // Feature 83/113: let the claim owner (if online, not the offender, and not still in cooldown) know someone tried to grief their claim.
         if (config.claimOwnerNotify()) {
             UUID ownerId = griefPrevention.claimOwner(l);
             if (ownerId != null && !ownerId.equals(p.getUniqueId())) {
-                Player owner = Bukkit.getPlayer(ownerId);
-                if (owner != null) owner.sendMessage(ChatColor.RED + "[GPBucket] " + p.getName() + " just attempted to grief your claim at " + l.getWorld().getName() + " " + l.getBlockX() + "," + l.getBlockY() + "," + l.getBlockZ() + " — it was blocked.");
+                String cooldownKey = ownerId + ":" + p.getUniqueId();
+                long now = System.currentTimeMillis(); Long last = lastOwnerNotifyAt.get(cooldownKey);
+                if (last == null || now - last >= config.claimOwnerNotifyCooldownMs()) {
+                    lastOwnerNotifyAt.put(cooldownKey, now);
+                    Player owner = Bukkit.getPlayer(ownerId);
+                    if (owner != null) owner.sendMessage(ChatColor.RED + "[GPBucket] " + p.getName() + " just attempted to grief your claim at " + l.getWorld().getName() + " " + l.getBlockX() + "," + l.getBlockY() + "," + l.getBlockZ() + " — it was blocked.");
+                }
             }
         }
         // Feature 8: Discord webhook alert.
@@ -101,11 +112,30 @@ public final class ProtectionListener implements Listener {
         if (autoBlockManager.recordAndCheck(p.getUniqueId())) {
             p.sendMessage(config.autoBlockedMessage());
             console.warn(p.getName() + " was auto-blocked after " + config.autoBlockThreshold() + " blocked liquid attempts in " + config.autoBlockWindowSeconds() + "s.");
-            if (config.notifyStaff()) for (Player staff : Bukkit.getOnlinePlayers()) if (staff.hasPermission(config.staffPermission())) staff.sendMessage(ChatColor.RED + "[GPBucket] " + p.getName() + " was auto-blocked for repeated liquid griefing attempts.");
+            if (config.notifyStaff()) notifyStaffThrottled(ChatColor.RED + "[GPBucket] " + p.getName() + " was auto-blocked for repeated liquid griefing attempts.");
         }
         debug.log("Blocked " + action + " for " + p.getName() + " at " + l);
     }
-    /** Feature 7: shared message-cooldown gate for blocked/combat-tag/auto-block chat spam. */
+    /** Feature 109/112: sends a staff broadcast, collapsing rapid repeats into a throttled "+N more" summary, and skipping anyone using /gpbucket ignore. */
+    private void notifyStaffThrottled(String message) {
+        long now = System.currentTimeMillis();
+        if (config.staffAlertCooldownMs() > 0 && now - lastStaffBroadcastAt < config.staffAlertCooldownMs()) { suppressedStaffAlerts.incrementAndGet(); return; }
+        lastStaffBroadcastAt = now;
+        int suppressed = suppressedStaffAlerts.getAndSet(0);
+        String full = suppressed > 0 ? message + ChatColor.GRAY + " (+" + suppressed + " more since last alert)" : message;
+        for (Player staff : Bukkit.getOnlinePlayers()) if (staff.hasPermission(config.staffPermission()) && !ignoring.isIgnoring(staff.getUniqueId())) staff.sendMessage(full);
+    }
+    /** Feature 110/113: read-only prediction of what handlePlayer() would do, for /gpbucket testflag. Returns null if the action would be allowed. */
+    public String wouldBlock(Player player, Location location, Material bucket) {
+        if (!config.shouldBlock(bucket, false) && !config.shouldBlock(bucket, true)) return null;
+        if (!isProtected(location)) return null;
+        String liquidKey = bucket == Material.WATER_BUCKET ? "WATER" : bucket == Material.LAVA_BUCKET ? "LAVA" : "POWDER_SNOW";
+        if ("ALLOW".equals(ProtectionQuery.regionFlag(regions, location, liquidKey))) return null;
+        if (autoBlockManager.isTempBlocked(player.getUniqueId())) return "player is currently auto-blocked";
+        if (combatTracker.isTagged(player, config.combatTagMs())) return "player is combat-tagged";
+        if (!isExempt(player)) return "no applicable exemption";
+        return null;
+    }
     private void sendCooldownStyleMessage(Player p, String message) {
         long now = System.currentTimeMillis(); Long last = lastMessage.get(p.getUniqueId());
         if (config.messageCooldownMs() > 0 && last != null && now - last < config.messageCooldownMs()) return;
